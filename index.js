@@ -10,8 +10,17 @@ import pino from 'pino';
 import fs from 'fs';
 import readline from 'readline';
 import { askGemini } from './gemini.js';
-import { initDB, isUserSeen, markUserAsSeen, clearChatHistory, resetUserStatus } from './database.js';
+import { 
+    initDB, 
+    isUserSeen, 
+    markUserAsSeen, 
+    clearChatHistory, 
+    resetUserStatus,
+    getAdminStats,
+    getAllUsers
+} from './database.js';
 
+const ADMIN_NUMBER = process.env.ADMIN_NUMBER;
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 const question = (text) => new Promise((resolve) => rl.question(text, resolve));
 
@@ -110,18 +119,46 @@ async function connectToWhatsApp() {
                 await socket.sendMessage(remoteJid, { text: aiResponse }, { quoted: msg });
 
             } else if (textMessage) {
-                // Handle custom commands
-                if (textMessage.toLowerCase() === '.clear') {
-                    await clearChatHistory(remoteJid);
-                    await socket.sendMessage(remoteJid, { text: "🧹 Your chat history has been cleared!" }, { quoted: msg });
-                    return;
-                }
+                // COMMAND HANDLING (Admin Only)
+                const isAdmin = remoteJid === ADMIN_NUMBER;
 
-                if (textMessage.toLowerCase() === '.reset') {
-                    await resetUserStatus(remoteJid);
-                    await clearChatHistory(remoteJid);
-                    await socket.sendMessage(remoteJid, { text: "🔄 Bot has been reset for you. Send a message to see the welcome screen again!" }, { quoted: msg });
-                    return;
+                if (isAdmin) {
+                    if (textMessage.toLowerCase() === '.clear') {
+                        await clearChatHistory(remoteJid);
+                        await socket.sendMessage(remoteJid, { text: "🧹 Your chat history has been cleared!" }, { quoted: msg });
+                        return;
+                    }
+
+                    if (textMessage.toLowerCase() === '.reset') {
+                        await resetUserStatus(remoteJid);
+                        await clearChatHistory(remoteJid);
+                        await socket.sendMessage(remoteJid, { text: "🔄 Bot has been reset for you. Send a message to see the welcome screen again!" }, { quoted: msg });
+                        return;
+                    }
+
+                    if (textMessage.toLowerCase() === '.stats') {
+                        const stats = await getAdminStats();
+                        await socket.sendMessage(remoteJid, { text: `📊 *Study-It Stats*\n\n👥 Total Users: ${stats.users}\n💬 Total Messages: ${stats.messages}` }, { quoted: msg });
+                        return;
+                    }
+
+                    if (textMessage.toLowerCase().startsWith('.broadcast ')) {
+                        const broadcastMsg = textMessage.replace('.broadcast ', '').trim();
+                        const users = await getAllUsers();
+                        let successCount = 0;
+
+                        for (const user of users) {
+                            try {
+                                await socket.sendMessage(user, { text: `📢 *Global Message from Study-It*\n\n${broadcastMsg}` });
+                                successCount++;
+                            } catch (err) {
+                                console.error(`Failed to broadcast to ${user}:`, err);
+                            }
+                        }
+
+                        await socket.sendMessage(remoteJid, { text: `✅ Broadcast sent to ${successCount} users.` }, { quoted: msg });
+                        return;
+                    }
                 }
 
                 console.log(`Received message from ${remoteJid}: ${textMessage}`);

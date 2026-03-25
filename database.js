@@ -64,6 +64,13 @@ export async function isUserSeen(jid) {
 }
 
 /**
+ * Marks a user as seen
+ */
+export async function markUserAsSeen(jid) {
+    await db.run('INSERT OR IGNORE INTO seen_users (jid) VALUES (?)', [jid]);
+}
+
+/**
  * Deletes all messages for a specific user
  */
 export async function clearChatHistory(jid) {
@@ -75,4 +82,24 @@ export async function clearChatHistory(jid) {
  */
 export async function resetUserStatus(jid) {
     await db.run('DELETE FROM seen_users WHERE jid = ?', [jid]);
+}
+
+/**
+ * Gets overall bot statistics
+ */
+export async function getAdminStats() {
+    const totalUsers = await db.get('SELECT COUNT(*) as count FROM seen_users');
+    const totalMessages = await db.get('SELECT COUNT(*) as count FROM messages');
+    return {
+        users: totalUsers.count,
+        messages: totalMessages.count
+    };
+}
+
+/**
+ * Gets all registered users for broadcasting
+ */
+export async function getAllUsers() {
+    const rows = await db.all('SELECT jid FROM seen_users');
+    return rows.map(row => row.jid);
 }

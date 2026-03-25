@@ -55,14 +55,14 @@ export async function askGemini(jid, prompt, mimes = []) {
     } catch (error) {
         console.error('Error in askGemini:', error);
 
-        if (error.message?.includes('503')) {
-            return "The AI is currently overloaded. Please try again in a few seconds!";
+        if (error.message?.includes('429')) {
+            console.error(`CRITICAL: Gemini Quota Exceeded for ${MODEL_NAME}. Switch models in gemini.js!`);
         }
 
         if (error.message?.includes('404') || error.message?.includes('not found')) {
-            return "System Error: The AI model name might be incorrect. Please check gemini.js.";
+            console.error(`CRITICAL: Model ${MODEL_NAME} not found. Check the model name in gemini.js!`);
         }
 
-        return "I'm sorry, I'm having trouble thinking right now. Please try again later!";
+        return "I'm temporarily unavailable. Please try again in 1 minute! 🧠💤";
     }
 }

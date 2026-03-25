@@ -14,8 +14,6 @@ import {
     initDB, 
     isUserSeen, 
     markUserAsSeen, 
-    clearChatHistory, 
-    resetUserStatus,
     getAdminStats,
     getAllUsers
 } from './database.js';
@@ -123,19 +121,6 @@ async function connectToWhatsApp() {
                 const isAdmin = remoteJid === ADMIN_NUMBER;
 
                 if (isAdmin) {
-                    if (textMessage.toLowerCase() === '.clear') {
-                        await clearChatHistory(remoteJid);
-                        await socket.sendMessage(remoteJid, { text: "🧹 Your chat history has been cleared!" }, { quoted: msg });
-                        return;
-                    }
-
-                    if (textMessage.toLowerCase() === '.reset') {
-                        await resetUserStatus(remoteJid);
-                        await clearChatHistory(remoteJid);
-                        await socket.sendMessage(remoteJid, { text: "🔄 Bot has been reset for you. Send a message to see the welcome screen again!" }, { quoted: msg });
-                        return;
-                    }
-
                     if (textMessage.toLowerCase() === '.stats') {
                         const stats = await getAdminStats();
                         await socket.sendMessage(remoteJid, { text: `📊 *Study-It Stats*\n\n👥 Total Users: ${stats.users}\n💬 Total Messages: ${stats.messages}` }, { quoted: msg });
@@ -159,6 +144,10 @@ async function connectToWhatsApp() {
                         await socket.sendMessage(remoteJid, { text: `✅ Broadcast sent to ${successCount} users.` }, { quoted: msg });
                         return;
                     }
+                } else if (textMessage.startsWith('.')) {
+                    // For non-admin users, ignore any message starting with .
+                    // This prevents them from accidentally triggering AI with command-like text.
+                    return;
                 }
 
                 console.log(`Received message from ${remoteJid}: ${textMessage}`);

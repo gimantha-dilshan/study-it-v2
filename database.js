@@ -70,19 +70,6 @@ export async function markUserAsSeen(jid) {
     await db.run('INSERT OR IGNORE INTO seen_users (jid) VALUES (?)', [jid]);
 }
 
-/**
- * Deletes all messages for a specific user
- */
-export async function clearChatHistory(jid) {
-    await db.run('DELETE FROM messages WHERE jid = ?', [jid]);
-}
-
-/**
- * Resets the "seen" status for a specific user
- */
-export async function resetUserStatus(jid) {
-    await db.run('DELETE FROM seen_users WHERE jid = ?', [jid]);
-}
 
 /**
  * Gets overall bot statistics

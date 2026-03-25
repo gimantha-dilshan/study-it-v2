@@ -118,7 +118,15 @@ async function connectToWhatsApp() {
 
             } else if (textMessage) {
                 // COMMAND HANDLING (Admin Only)
-                const isAdmin = remoteJid === ADMIN_NUMBER;
+                // LID Support (Baileys 7.0.0+): Check both the primary JID and the Alternate JID (Phone Number)
+                const remoteJidAlt = msg.key.remoteJidAlt;
+                const participantAlt = msg.key.participantAlt;
+                const isNumberMatch = 
+                    remoteJid.includes(ADMIN_NUMBER) || 
+                    (remoteJidAlt && remoteJidAlt.includes(ADMIN_NUMBER)) ||
+                    (participantAlt && participantAlt.includes(ADMIN_NUMBER));
+
+                const isAdmin = isNumberMatch;
 
                 if (isAdmin) {
                     if (textMessage.toLowerCase() === '.stats') {

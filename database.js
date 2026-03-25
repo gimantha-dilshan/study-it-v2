@@ -1,57 +1,67 @@
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
+import fs from 'fs/promises';
+import path from 'path';
 
-let db;
+const DB_PATH = path.resolve('./database.json');
+
+// Initial structure
+let data = {
+    messages: [],
+    seenUsers: [] // Stores JIDs
+};
 
 /**
- * Initializes the SQLite database and creates necessary tables
+ * Initializes the JSON database
  */
 export async function initDB() {
-    db = await open({
-        filename: './study_it.db',
-        driver: sqlite3.Database
-    });
+    try {
+        const fileContent = await fs.readFile(DB_PATH, 'utf-8');
+        data = JSON.parse(fileContent);
+        console.log('Database loaded successfully from JSON.');
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            await saveToDisk();
+            console.log('New database.json created.');
+        } else {
+            console.error('Error loading database:', error);
+        }
+    }
+}
 
-    await db.exec(`
-        CREATE TABLE IF NOT EXISTS messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            jid TEXT,
-            role TEXT,
-            content TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE TABLE IF NOT EXISTS seen_users (
-            jid TEXT PRIMARY KEY,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-    `);
-    
-    console.log('Database initialized successfully.');
+/**
+ * Saves the current in-memory state to the JSON file
+ */
+async function saveToDisk() {
+    try {
+        await fs.writeFile(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
+    } catch (error) {
+        console.error('Error saving to disk:', error);
+    }
 }
 
 /**
  * Saves a message to the database
  */
 export async function saveMessage(jid, role, content) {
-    await db.run(
-        'INSERT INTO messages (jid, role, content) VALUES (?, ?, ?)',
-        [jid, role, content]
-    );
+    data.messages.push({
+        jid,
+        role,
+        content,
+        timestamp: new Date().toISOString()
+    });
+    await saveToDisk();
 }
 
 /**
  * Gets the last N messages for a specific user
  */
 export async function getChatHistory(jid, limit = 10) {
-    const rows = await db.all(
-        'SELECT role, content FROM (SELECT * FROM messages WHERE jid = ? ORDER BY id DESC LIMIT ?) ORDER BY id ASC',
-        [jid, limit]
-    );
+    const userMessages = data.messages
+        .filter(m => m.jid === jid)
+        .slice(-limit); // Get the last N
     
-    return rows.map(row => ({
-        role: row.role,
-        parts: [{ text: row.content }]
+    return userMessages.map(m => ({
+        role: m.role,
+        parts: [{ text: m.content }]
     }));
 }
 
@@ -59,27 +69,26 @@ export async function getChatHistory(jid, limit = 10) {
  * Checks if a user has been seen before
  */
 export async function isUserSeen(jid) {
-    const row = await db.get('SELECT jid FROM seen_users WHERE jid = ?', [jid]);
-    return !!row;
+    return data.seenUsers.includes(jid);
 }
 
 /**
  * Marks a user as seen
  */
 export async function markUserAsSeen(jid) {
-    await db.run('INSERT OR IGNORE INTO seen_users (jid) VALUES (?)', [jid]);
+    if (!data.seenUsers.includes(jid)) {
+        data.seenUsers.push(jid);
+        await saveToDisk();
+    }
 }
-
 
 /**
  * Gets overall bot statistics
  */
 export async function getAdminStats() {
-    const totalUsers = await db.get('SELECT COUNT(*) as count FROM seen_users');
-    const totalMessages = await db.get('SELECT COUNT(*) as count FROM messages');
     return {
-        users: totalUsers.count,
-        messages: totalMessages.count
+        users: data.seenUsers.length,
+        messages: data.messages.length
     };
 }
 
@@ -87,6 +96,5 @@ export async function getAdminStats() {
  * Gets all registered users for broadcasting
  */
 export async function getAllUsers() {
-    const rows = await db.all('SELECT jid FROM seen_users');
-    return rows.map(row => row.jid);
+    return data.seenUsers;
 }

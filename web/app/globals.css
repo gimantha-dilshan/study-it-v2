@@ -1,9 +1,11 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #0a0a0c;
+  --color-background: #030303;
   --color-foreground: #ffffff;
   --color-accent: #6366f1;
+  --color-accent-blue: #3b82f6;
+  --color-accent-purple: #a855f7;
   --color-accent-glow: rgba(99, 102, 241, 0.15);
 }
 
@@ -11,18 +13,34 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-    @apply font-sans;
+    @apply font-sans antialiased overflow-x-hidden;
   }
 }
 
 @layer components {
   .glass {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl;
+    @apply bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] shadow-2xl;
   }
 
-  .glow {
-    box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
+  .glass-card {
+    @apply bg-white/[0.02] backdrop-blur-md border border-white/[0.05] rounded-3xl p-6 transition-all duration-300 hover:bg-white/[0.04] hover:border-white/[0.1];
   }
+
+  .glow-text {
+    text-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+  }
+}
+
+@keyframes mesh {
+  0% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.1); }
 }
 
 @keyframes float {
@@ -31,6 +49,32 @@
   100% { transform: translateY(0px); }
 }
 
+.animate-mesh {
+  animation: mesh 20s ease-in-out infinite alternate;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 8s linear infinite;
+}
+
 .animate-float {
   animation: float 6s ease-in-out infinite;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }

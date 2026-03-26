@@ -24,7 +24,6 @@ export default function RegistrationPage() {
     setStatus("loading");
 
     try {
-      // Normalize number: remove all non-digits (e.g. +94 71... -> 9471...)
       const pureNumber = whatsappId.replace(/\D/g, "");
 
       if (!pureNumber) {
@@ -33,123 +32,182 @@ export default function RegistrationPage() {
         return;
       }
 
-      // Find user by searching the 'jid' column OR the 'id' column with the number
-      // Hint: If the bot is storing @s.whatsapp.net nodes, the jid will contain the number.
       const { data: user, error: fetchError } = await supabase
         .from("users")
         .select("*")
-        .or(`jid.ilike.%${pureNumber}%,phone.ilike.%${pureNumber}%`) // Search in both jid and new phone column
+        .or(`jid.ilike.%${pureNumber}%,phone.ilike.%${pureNumber}%`)
         .single();
 
       if (fetchError && fetchError.code !== "PGRST116") throw fetchError;
 
       if (!user) {
         setStatus("error");
-        setMessage("WhatsApp number not found. Please message the bot once first!");
+        setMessage("Number not found. Please message the bot once first!");
         return;
       }
 
-      // Update user to registered
       const { error: updateError } = await supabase
         .from("users")
         .update({
           is_registered: true,
           email: email
         })
-        .eq("jid", user.jid); // Use the found JID
+        .eq("jid", user.jid);
 
       if (updateError) throw updateError;
 
       setStatus("success");
-      setMessage("Registration successful! Your daily limit has been increased to 50 messages. Now you can continue using the bot on Whatsapp 🎓✨");
+      setMessage("Your daily limit has been increased to 50 messages! 🚀");
     } catch (err: any) {
       console.error(err);
       setStatus("error");
-      setMessage(err.message || "Something went wrong. Please try again.");
+      setMessage(err.message || "Something went wrong.");
     }
   };
 
   if (!mounted) return <div className="min-h-screen bg-black" />;
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-6 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-indigo-900/20 via-black to-black">
-      {/* Decorative Blur */}
-      <div className="absolute top-1/4 -left-20 w-72 h-72 bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-1/4 -right-20 w-72 h-72 bg-purple-600/20 rounded-full blur-[120px] pointer-events-none" />
+    <main className="relative min-h-screen w-full flex flex-col items-center justify-center p-4 md:p-8 overflow-hidden bg-[#030303]">
+      {/* Dynamic Background Animation Layer */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-600/20 rounded-full blur-[120px] animate-mesh" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/20 rounded-full blur-[120px] animate-mesh animate-pulse-slow" />
+        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-blue-600/10 rounded-full blur-[100px] animate-mesh" style={{ animationDelay: "-5s" }} />
+        
+        {/* Subtle Grid Overlay */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
+             style={{ backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
+      </div>
 
-      <div className="w-full max-w-md glass rounded-3xl p-8 space-y-8 animate-float">
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-            Study-It
-          </h1>
-          <p className="text-gray-400 text-sm">Elevate your learning experience.</p>
+      {/* Content Container */}
+      <div className="relative z-10 w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        
+        {/* Left Side: Brand & Info */}
+        <div className="space-y-8 text-center lg:text-left">
+          <div className="space-y-4">
+            <h1 className="text-5xl md:text-7xl font-bold tracking-tighter glow-text">
+              Study-It <span className="text-indigo-500">Pro</span>
+            </h1>
+            <p className="text-xl md:text-2xl text-gray-400 max-w-lg mx-auto lg:mx-0 leading-relaxed">
+              Unlock the full potential of your AI study partner and accelerate your learning journey.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="glass-card flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center shrink-0 border border-indigo-500/20">
+                <span className="text-indigo-400 font-bold">50</span>
+              </div>
+              <div className="text-left">
+                <h3 className="font-semibold text-white">Daily Messages</h3>
+                <p className="text-sm text-gray-500">Increased from 5 to 50.</p>
+              </div>
+            </div>
+            <div className="glass-card flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0 border border-blue-500/20">
+                <span className="text-blue-400 font-bold">🤖</span>
+              </div>
+              <div className="text-left">
+                <h3 className="font-semibold text-white">Full AI Power</h3>
+                <p className="text-sm text-gray-500">Unrestricted Gemini access.</p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {status === "success" ? (
-          <div className="space-y-6 text-center py-8">
-            <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto border border-green-500/50">
-              <svg className="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-semibold text-white">All Set!</h2>
-            <p className="text-gray-400">{message}</p>
-            <button
-              onClick={() => setStatus("idle")}
-              className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all border border-white/10"
-            >
-              Back
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={handleRegister} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest px-1">WhatsApp Number</label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. 947xxxxxxxx"
-                className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-white placeholder:text-gray-600"
-                value={whatsappId}
-                onChange={(e) => setWhatsappId(e.target.value)}
-              />
-              <p className="text-[10px] text-gray-400 px-1 opacity-60">Enter the number you use to message the bot.</p>
-            </div>
+        {/* Right Side: Registration Form */}
+        <div className="relative group">
+          <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-[2.5rem] blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+          
+          <div className="relative glass rounded-[2rem] p-8 md:p-10 space-y-8 animate-float">
+            {status === "success" ? (
+              <div className="text-center space-y-6 py-10">
+                <div className="w-24 h-24 bg-green-500/10 rounded-full flex items-center justify-center mx-auto border border-green-500/30 scale-110">
+                  <svg className="w-12 h-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-3xl font-bold text-white">Welcome, Pro!</h2>
+                  <p className="text-gray-400 text-lg">{message}</p>
+                </div>
+                <button
+                  onClick={() => setStatus("idle")}
+                  className="w-full py-4 bg-white/5 hover:bg-white/10 rounded-2xl transition-all border border-white/10 font-semibold"
+                >
+                  Register Another Account
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleRegister} className="space-y-6">
+                <div className="space-y-2 text-center md:text-left mb-8">
+                  <h2 className="text-3xl font-bold text-white">Start for Free</h2>
+                  <p className="text-gray-400">Join thousands of students today.</p>
+                </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest px-1">Email Address</label>
-              <input
-                type="email"
-                required
-                placeholder="alex@gmail.com"
-                className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-white placeholder:text-gray-600"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
+                <div className="space-y-5">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-400 ml-1">WhatsApp ID</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 947xxxxxxxx"
+                      className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all text-white placeholder:text-gray-700"
+                      value={whatsappId}
+                      onChange={(e) => setWhatsappId(e.target.value)}
+                    />
+                  </div>
 
-            {status === "error" && (
-              <p className="text-red-400 text-sm text-center bg-red-400/10 py-3 rounded-xl border border-red-400/20">
-                {message}
-              </p>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-400 ml-1">Email</label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="alex@example.com"
+                      className="w-full bg-white/[0.03] border border-white/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all text-white placeholder:text-gray-700"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {status === "error" && (
+                  <div className="animate-in fade-in slide-in-from-top-2">
+                    <p className="text-red-400 text-sm text-center bg-red-400/10 py-4 rounded-2xl border border-red-400/20 px-4">
+                      {message}
+                    </p>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={status === "loading"}
+                  className="group relative w-full py-5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-2xl transition-all shadow-xl shadow-indigo-600/20 active:scale-[0.98] overflow-hidden"
+                >
+                  <span className="relative z-10">
+                    {status === "loading" ? "Activating Pro..." : "Activate Pro Account"}
+                  </span>
+                  <div className="absolute inset-0 bg-white/20 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300" />
+                </button>
+              </form>
             )}
-
-            <button
-              type="submit"
-              disabled={status === "loading"}
-              className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-2xl transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
-            >
-              {status === "loading" ? "Registering..." : "Level Up Now"}
-            </button>
-          </form>
-        )}
-
-        <div className="text-center">
-          <p className="text-xs text-gray-600">
-            Securely managed by Supabase & Gemini
-          </p>
+            
+            <p className="text-center text-xs text-gray-600">
+              By registering, you agree to our Study-It Terms of Service.
+            </p>
+          </div>
         </div>
       </div>
+
+      {/* Footer Decoration */}
+      <footer className="mt-20 text-gray-600 text-sm flex gap-6 z-10">
+        <span>Supabase DB</span>
+        <span>•</span>
+        <span>Gemini AI</span>
+        <span>•</span>
+        <span>Baileys WA</span>
+      </footer>
     </main>
   );
 }

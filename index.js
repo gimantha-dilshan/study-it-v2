@@ -26,6 +26,18 @@ import {
 } from './database.js';
 
 const ADMIN_NUMBER = process.env.ADMIN_NUMBER;
+
+// --- Terminal Colors ---
+const C = {
+    reset: "\x1b[0m",
+    bold: "\x1b[1m",
+    cyan: "\x1b[36m",
+    green: "\x1b[32m",
+    yellow: "\x1b[33m",
+    red: "\x1b[31m",
+    magenta: "\x1b[35m"
+};
+
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 const question = (text) => new Promise((resolve) => rl.question(text, resolve));
 
@@ -44,15 +56,25 @@ Ready to begin? Just ask me a question or send a photo of your task! 📚✍️�
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// --- Professional Console Branding ---
+function printHeader() {
+    console.clear();
+    console.log(`${C.cyan}${C.bold}=================================================`);
+    console.log(`       STUDY-IT V2.5 - AI STUDY PARTNER`);
+    console.log(`       Developed by Gimantha Dilshan`);
+    console.log(`=================================================${C.reset}\n`);
+    console.log(`${C.yellow}[SYSTEM]${C.reset} Initializing Study-It core engines...`);
+}
+
 async function startBroadcastListener(socket) {
-    console.log('📡 Global Broadcast Listener initialized...');
+    console.log(`${C.magenta}[BROADCAST]${C.reset} Global Listener initialized...`);
 
     // Subscribe to new rows in 'broadcasts' table
     supabase
         .channel('broadcasts-realtime')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'broadcasts' }, async (payload) => {
             const { message, id } = payload.new;
-            console.log(`📢 Received new broadcast [ID: ${id}]: ${message}`);
+            console.log(`${C.magenta}[BROADCAST]${C.reset} Received new broadcast [ID: ${id}]`);
 
             const users = await getAllUsers();
             console.log(`🚀 Transmitting broadast to ${users.length} users...`);
@@ -93,6 +115,7 @@ async function startBroadcastListener(socket) {
 }
 
 async function connectToWhatsApp() {
+    printHeader();
     await initDB(); // Initialize the database
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
     const { version, isLatest } = await fetchLatestBaileysVersion();
@@ -140,7 +163,8 @@ async function connectToWhatsApp() {
                 console.log('Logged out. Please delete the auth_info_baileys folder and scan the QR code again.');
             }
         } else if (connection === 'open') {
-            console.log('Successfully connected to WhatsApp!');
+            console.log(`\n${C.green}${C.bold}[SUCCESS] Connected to WhatsApp!${C.reset}`);
+            console.log(`${C.green}[SYSTEM] Study-It is now online and listening for messages. 🚀${C.reset}\n`);
             startBroadcastListener(socket);
         }
     });
@@ -202,7 +226,7 @@ async function connectToWhatsApp() {
                     return;
                 }
 
-                console.log(`Received image from ${remoteJid}`);
+                console.log(`${C.cyan}[INCOMING]${C.reset} Image from ${remoteJid}`);
                 const stream = await downloadContentFromMessage(imageMessage, 'image');
                 let buffer = Buffer.from([]);
                 for await (const chunk of stream) {
@@ -234,7 +258,7 @@ async function connectToWhatsApp() {
                     return;
                 }
 
-                console.log(`Received voice note from ${remoteJid}`);
+                console.log(`${C.cyan}[INCOMING]${C.reset} Voice note from ${remoteJid}`);
                 const stream = await downloadContentFromMessage(audioMessage, 'audio');
                 let buffer = Buffer.from([]);
                 for await (const chunk of stream) {
@@ -266,7 +290,7 @@ async function connectToWhatsApp() {
                     return;
                 }
 
-                console.log(`Received PDF from ${remoteJid}`);
+                console.log(`${C.cyan}[INCOMING]${C.reset} PDF from ${remoteJid}`);
                 const stream = await downloadContentFromMessage(documentMessage, 'document');
                 let buffer = Buffer.from([]);
                 for await (const chunk of stream) {
@@ -337,7 +361,7 @@ async function connectToWhatsApp() {
                     return;
                 }
 
-                console.log(`Received message from ${remoteJid}: ${textMessage}`);
+                console.log(`${C.cyan}[INCOMING]${C.reset} Message from ${remoteJid}: ${textMessage}`);
                 await socket.readMessages([msg.key]);
                 await socket.sendPresenceUpdate('composing', remoteJid);
 

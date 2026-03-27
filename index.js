@@ -95,6 +95,14 @@ async function connectToWhatsApp() {
         const msg = m.messages[0];
         if (!msg.message || msg.key.fromMe) return;
 
+        // 🛑 PREVENTS QUOTA EXCEEDED: Ignore messages older than 60 seconds
+        const msgTimestamp = msg.messageTimestamp;
+        const currentTimestamp = Math.floor(Date.now() / 1000);
+        if (currentTimestamp - msgTimestamp > 60) {
+            console.log('Skipping old message to save Gemini quota.');
+            return;
+        }
+
         const remoteJid = msg.key.remoteJid;
         const textMessage = msg.message.conversation || msg.message.extendedTextMessage?.text;
         const imageMessage = msg.message.imageMessage;

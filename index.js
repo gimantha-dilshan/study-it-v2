@@ -103,6 +103,7 @@ async function connectToWhatsApp() {
             return;
         }
 
+        const pushName = msg.pushName || "";
         const remoteJid = msg.key.remoteJid;
         const textMessage = msg.message.conversation || msg.message.extendedTextMessage?.text;
         const imageMessage = msg.message.imageMessage;
@@ -120,7 +121,7 @@ async function connectToWhatsApp() {
             // Send welcome message if it's the first time seeing this user
             if (!(await isUserSeen(remoteJid))) {
                 await socket.sendMessage(remoteJid, { text: WELCOME_MESSAGE });
-                await markUserAsSeen(remoteJid, detectedPhone);
+                await markUserAsSeen(remoteJid, detectedPhone, pushName);
                 return;
             }
 

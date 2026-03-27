@@ -90,23 +90,18 @@ export async function isUserSeen(jid) {
  * Marks a user as seen (Creates profile)
  * Now also stores the linked phone number for easier registration lookup
  */
-export async function markUserAsSeen(jid, phone = null) {
-    let detectedPhone = phone;
-    
-    // If no phone provided, try to extract from JID (works for non-LID accounts)
-    if (!detectedPhone && jid.endsWith('@s.whatsapp.net')) {
-        detectedPhone = jid.split('@')[0];
-    }
-
-    const { error } = await supabase
-        .from('users')
-        .upsert([{ 
+export async function markUserAsSeen(jid, phone, name) {
+    try {
+        const { data, error } = await supabase.from('users').upsert([{ 
             jid, 
-            phone: detectedPhone,
+            phone, 
+            name,
             last_usage_date: new Date().toISOString().split('T')[0] 
         }], { onConflict: 'jid' });
-
-    if (error) console.error('Error marking user as seen:', error.message);
+        if (error) throw error;
+    } catch (error) {
+        console.error('Error marking user as seen:', error);
+    }
 }
 
 /**

@@ -8,9 +8,10 @@ const client = new GoogleGenAI({
     apiKey: process.env.GEMINI_API_KEY,
 });
 
-const MODEL_NAME = 'gemini-2.5-flash-lite';
+const PRIMARY_MODEL = 'gemini-2.5-flash';
+const SECONDARY_MODEL = 'gemini-2.5-flash-lite';
 
-export async function askGemini(jid, prompt, mimes = []) {
+export async function askGemini(jid, prompt, mimes = [], modelChoice = PRIMARY_MODEL) {
     try {
         // Retrieve history from database
         const history = await getChatHistory(jid, 10);
@@ -36,8 +37,9 @@ export async function askGemini(jid, prompt, mimes = []) {
             }
         ];
 
+        console.log(`Asking Gemini (${modelChoice})...`);
         const result = await client.models.generateContent({
-            model: MODEL_NAME,
+            model: modelChoice,
             contents: contents,
             config: {
                 systemInstruction: `You are 'Study-It', a friendly, encouraging, and highly intelligent educational WhatsApp bot. 
@@ -64,16 +66,19 @@ Follow these formatting rules strictly for every response:
 
         return responseText;
     } catch (error) {
-        console.error('Error in askGemini:', error);
+        console.error(`Error with ${modelChoice}:`, error.message);
 
-        if (error.message?.includes('429')) {
-            console.error(`CRITICAL: Gemini Quota Exceeded for ${MODEL_NAME}. Switch models in gemini.js!`);
+        // FALLBACK LOGIC: If the primary fails, try the secondary
+        if (modelChoice === PRIMARY_MODEL) {
+            console.log(`⚠️ Falling back to ${SECONDARY_MODEL}...`);
+            return await askGemini(jid, prompt, mimes, SECONDARY_MODEL);
         }
 
-        if (error.message?.includes('404') || error.message?.includes('not found')) {
-            console.error(`CRITICAL: Model ${MODEL_NAME} not found. Check the model name in gemini.js!`);
+        // If even the secondary fails, throw the error
+        if (error.message?.includes('429')) {
+            console.error(`CRITICAL: Gemini Quota Exceeded for ${modelChoice}.`);
         }
 
         throw error; // Let index.js handle the user-facing error message
     }
-}
+}

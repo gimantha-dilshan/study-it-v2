@@ -65,13 +65,15 @@ async function startBroadcastListener(socket) {
 
             const imagePath = './announcement.jpg';
             const hasImage = fs.existsSync(imagePath);
+            const imageBuffer = hasImage ? fs.readFileSync(imagePath) : null;
 
             let successCount = 0;
             for (const user of users) {
                 try {
                     if (hasImage) {
                         await socket.sendMessage(user, {
-                            image: fs.readFileSync(imagePath),
+                            image: imageBuffer,
+                            mimetype: 'image/jpeg',
                             caption: officialMessage
                         });
                     } else {

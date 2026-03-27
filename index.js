@@ -114,6 +114,33 @@ async function startBroadcastListener(socket) {
         .subscribe();
 }
 
+async function startRegistrationListener(socket) {
+    console.log(`${C.magenta}[REGISTRATION]${C.reset} Listener initialized...`);
+
+    supabase
+        .channel('registrations-realtime')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'registration_events' }, async (payload) => {
+            const { jid, id } = payload.new;
+            console.log(`${C.magenta}[REGISTRATION]${C.reset} New user registered: ${jid}`);
+
+            const welcomePro = `🎉 *CONGRATULATIONS!* 🎓✨\n\n` +
+                `You have successfully registered on our website. Your account has been upgraded to *PRO TIER!* 💎\n\n` +
+                `🚀 *New Daily Limit:* 100 Messages\n` +
+                `⚡ *Priority Access:* Faster AI responses\n` +
+                `📝 *Deep Analytics:* Full tracking enabled\n\n` +
+                `Thank you for choosing Study-It. Let's get back to learning! 📚🎒🚀`;
+
+            try {
+                await socket.sendMessage(jid, { text: welcomePro });
+                // Update status to processed
+                await supabase.from('registration_events').update({ status: 'processed' }).eq('id', id);
+            } catch (err) {
+                console.error(`Failed to send registration message to ${jid}:`, err);
+            }
+        })
+        .subscribe();
+}
+
 async function connectToWhatsApp() {
     printHeader();
     await initDB(); // Initialize the database
@@ -166,6 +193,7 @@ async function connectToWhatsApp() {
             console.log(`\n${C.green}${C.bold}[SUCCESS] Connected to WhatsApp!${C.reset}`);
             console.log(`${C.green}[SYSTEM] Study-It is now online and listening for messages. 🚀${C.reset}\n`);
             startBroadcastListener(socket);
+            startRegistrationListener(socket);
         }
     });
 

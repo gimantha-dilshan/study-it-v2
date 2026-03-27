@@ -56,6 +56,11 @@ export default function RegistrationPage() {
 
       if (updateError) throw updateError;
 
+      // Trigger registration event for the WhatsApp bot
+      await supabase
+        .from("registration_events")
+        .insert({ jid: user.jid });
+
       setStatus("success");
       setMessage("Your daily limit has been increased to 100 messages! Now you can continue using Study-It on Whatsapp 🚀");
     } catch (err: any) {

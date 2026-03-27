@@ -29,22 +29,24 @@ const ADMIN_NUMBER = process.env.ADMIN_NUMBER;
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 const question = (text) => new Promise((resolve) => rl.question(text, resolve));
 
-const WELCOME_MESSAGE = `Welcome to *Study It! 🎓✨*
+const WELCOME_MESSAGE = `Welcome to *Study-It 🎓✨*
 
-Your 24/7 AI Study Partner is now online. I’m here to help you solve problems, explain tricky concepts, and get your homework done faster!
+I am your 24/7 AI-powered Study Partner, designed to help you excel. I now support full *Multimedia Learning!* 🚀
 
-Here’s what I can do for you:
-📸 *Scan Homework:* Just send a photo of any problem (math, science, etc.).
-💬 *Ask Anything:* Type any question you're stuck on.
-🧠 *Step-by-Step:* I don't just give answers, I explain how to solve them.
+📸 *Scan Homework:* Send any photo of a problem for a step-by-step solution.
+👂 *Voice Support:* Send a voice note, and I'll listen and explain concepts to you.
+📄 *Read Documents:* Upload a PDF or Textbook page for instant analysis.
+🧠 *Deep AI:* I use Gemini 2.5 Flash for the most accurate educational help.
 
-Ready to start? Just send me a message or a photo of your assignment! 🚀`;
+*Quick Tip:* Register once on our website to increase your daily limit from 5 to *100* messages!
+
+Ready to begin? Just ask me a question or send a photo of your task! 📚✍️💡`;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function startBroadcastListener(socket) {
     console.log('📡 Global Broadcast Listener initialized...');
-    
+
     // Subscribe to new rows in 'broadcasts' table
     supabase
         .channel('broadcasts-realtime')
@@ -56,10 +58,10 @@ async function startBroadcastListener(socket) {
             console.log(`🚀 Transmitting broadast to ${users.length} users...`);
 
             const officialMessage = `📢 *STUDY-IT OFFICIAL ANNOUNCEMENT* 🎓\n` +
-                                    `------------------------------------------\n\n` +
-                                    `${message}\n\n` +
-                                    `------------------------------------------\n` +
-                                    `_Thank you for choosing Study-It. Best of luck with your studies!_ 🚀`;
+                `------------------------------------------\n\n` +
+                `${message}\n\n` +
+                `------------------------------------------\n` +
+                `_Thank you for choosing Study-It. Best of luck with your studies!_ 🚀`;
 
             const imagePath = './announcement.jpg';
             const hasImage = fs.existsSync(imagePath);
@@ -68,16 +70,16 @@ async function startBroadcastListener(socket) {
             for (const user of users) {
                 try {
                     if (hasImage) {
-                        await socket.sendMessage(user, { 
-                            image: fs.readFileSync(imagePath), 
-                            caption: officialMessage 
+                        await socket.sendMessage(user, {
+                            image: fs.readFileSync(imagePath),
+                            caption: officialMessage
                         });
                     } else {
                         await socket.sendMessage(user, { text: officialMessage });
                     }
                     successCount++;
                     // Safe throttling to prevent WhatsApp bans
-                    await sleep(500); 
+                    await sleep(500);
                 } catch (err) {
                     console.error(`Failed to broadcast to ${user}:`, err);
                 }
@@ -218,7 +220,7 @@ async function connectToWhatsApp() {
 
                 await incrementUsage(remoteJid);
                 await socket.sendMessage(remoteJid, { text: aiResponse }, { quoted: msg });
-                
+
                 // Save AI response
                 await saveMessage(remoteJid, 'model', aiResponse, 'text');
 
@@ -240,12 +242,12 @@ async function connectToWhatsApp() {
                 }
 
                 const base64Audio = buffer.toString('base64');
-                
+
                 // Save user audio message
                 await saveMessage(remoteJid, 'user', '[Audio Message]', 'audio');
 
                 await socket.sendMessage(remoteJid, { text: "Listening to your voice note... 👂" }, { quoted: msg });
-                
+
                 const aiResponse = await askGemini(remoteJid, "User sent a voice note. Listen and respond.", [{ mimeType: 'audio/ogg', data: base64Audio }]);
 
                 await incrementUsage(remoteJid);
@@ -282,7 +284,7 @@ async function connectToWhatsApp() {
 
                 await incrementUsage(remoteJid);
                 await socket.sendMessage(remoteJid, { text: aiResponse }, { quoted: msg });
-                
+
                 // Save AI response
                 await saveMessage(remoteJid, 'model', aiResponse, 'text');
 

@@ -142,15 +142,11 @@ export async function getAdminStats() {
     const { count: usersCount } = await supabase
         .from('users')
         .select('*', { count: 'exact', head: true });
-    
-    const { count: messagesCount } = await supabase
+    const { count: messageCount } = await supabase
         .from('messages')
-        .select('*', { count: 'exact', head: true });
-
-    return {
-        users: usersCount || 0,
-        messages: messagesCount || 0
-    };
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'user');
+    return { users: usersCount || 0, messages: messageCount || 0 };
 }
 
 /**

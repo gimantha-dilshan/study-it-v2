@@ -53,12 +53,18 @@ async function startBroadcastListener(socket) {
             console.log(`📢 Received new broadcast [ID: ${id}]: ${message}`);
 
             const users = await getAllUsers();
-            console.log(`🚀 Transmitting broadcast to ${users.length} users...`);
+            console.log(`🚀 Transmitting broadast to ${users.length} users...`);
+
+            const officialMessage = `📢 *STUDY-IT OFFICIAL ANNOUNCEMENT* 🎓\n` +
+                                    `------------------------------------------\n\n` +
+                                    `${message}\n\n` +
+                                    `------------------------------------------\n` +
+                                    `_Thank you for choosing Study-It. Best of luck with your studies!_ 🚀`;
 
             let successCount = 0;
             for (const user of users) {
                 try {
-                    await socket.sendMessage(user, { text: `📢 *Global Message from Study-It*\n\n${message}` });
+                    await socket.sendMessage(user, { text: officialMessage });
                     successCount++;
                     // Safe throttling to prevent WhatsApp bans
                     await sleep(500); 

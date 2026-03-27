@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { verifyAdminPasscode } from "./actions";
+import { verifyAdminPasscode, getAdminData, getAdminUserMessages } from "./actions";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -72,39 +72,46 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const { data: usersData, count: totalCount } = await supabase.from("users").select("*", { count: "exact" }).order('created_at', { ascending: false });
-      const registeredCount = usersData?.filter(u => u.is_registered).length || 0;
-      const today = new Date().toISOString().split('T')[0];
-      const newUsersToday = usersData?.filter(u => u.created_at?.startsWith(today)).length || 0;
-      const { count: messagesCount } = await supabase.from("messages").select("*", { count: "exact", head: true }).eq('role', 'model');
-      const { data: broadcastData } = await supabase.from("broadcasts").select("*").order('created_at', { ascending: false }).limit(5);
+      const result = await getAdminData(passcode);
+      if (result.success && result.data) {
+        const { users: usersData, messages: messagesData, broadcasts: broadcastData } = result.data;
+        
+        const totalCount = usersData.length;
+        const registeredCount = usersData.filter((u: any) => u.is_registered).length || 0;
+        const today = new Date().toISOString().split('T')[0];
+        const newUsersToday = usersData.filter((u: any) => u.created_at?.startsWith(today)).length || 0;
+        
+        const messagesCount = messagesData.filter((m: any) => m.role === 'model').length;
 
-      setStats({ totalUsers: totalCount || 0, registeredUsers: registeredCount, totalMessages: messagesCount || 0, newUsersToday });
-      setUsers(usersData || []);
-      setBroadcasts(broadcastData || []);
-    } catch (err) { console.error(err); } finally { setLoading(false); }
+        setStats({ totalUsers: totalCount, registeredUsers: registeredCount, totalMessages: messagesCount, newUsersToday });
+        setUsers(usersData);
+        setBroadcasts(broadcastData.slice(0, 5));
+      } else {
+        setError(result.error || "Failed to load dashboard data.");
+      }
+    } catch (err) { 
+      console.error(err); 
+      setError("A server error occurred.");
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const fetchUserDetail = async (user: any) => {
     setSelectedUser(user);
     setLoadingDetails(true);
     try {
-        const { data: messages } = await supabase
-            .from('messages')
-            .select('*')
-            .eq('jid', user.jid)
-            .order('created_at', { ascending: false });
-
-        if (messages) {
+        const result = await getAdminUserMessages(passcode, user.jid);
+        if (result.success && result.data) {
+            const messages = result.data;
             const counts = {
-                text: messages.filter(m => m.type === 'text' && m.role === 'user').length,
-                image: messages.filter(m => m.type === 'image' && m.role === 'user').length,
-                audio: messages.filter(m => m.type === 'audio' && m.role === 'user').length,
-                document: messages.filter(m => m.type === 'document' && m.role === 'user').length,
-                total: messages.filter(m => m.role === 'model').length
+                text: messages.filter((m: any) => m.type === 'text' && m.role === 'user').length,
+                image: messages.filter((m: any) => m.type === 'image' && m.role === 'user').length,
+                audio: messages.filter((m: any) => m.type === 'audio' && m.role === 'user').length,
+                document: messages.filter((m: any) => m.type === 'document' && m.role === 'user').length,
+                total: messages.filter((m: any) => m.role === 'model').length
             };
 
-            // Activity by day (last 7 days)
             const activity: any = {};
             const last7Days = Array.from({length: 7}, (_, i) => {
                 const d = new Date();
@@ -113,9 +120,9 @@ export default function AdminDashboard() {
             }).reverse();
 
             last7Days.forEach(day => activity[day] = 0);
-            messages.forEach(m => {
-                const day = m.created_at.split('T')[0];
-                if (activity[day] !== undefined && m.role === 'user') activity[day]++;
+            messages.forEach((m: any) => {
+                const day = m.created_at?.split('T')[0];
+                if (day && activity[day] !== undefined && m.role === 'user') activity[day]++;
             });
 
             setUserDetails({ counts, activity: Object.entries(activity).map(([day, val]) => ({ day, val })) });

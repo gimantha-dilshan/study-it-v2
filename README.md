@@ -87,7 +87,7 @@ study-it-v2/
 Create three tables in your Supabase project:
 
 ```sql
--- 1. Users Table
+-- 1. Users Table (Stores student profiles & quotas)
 CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,
     jid TEXT UNIQUE,
@@ -96,34 +96,36 @@ CREATE TABLE users (
     email TEXT,
     is_registered BOOLEAN DEFAULT false,
     daily_usage INTEGER DEFAULT 0,
+    last_usage_date TEXT, -- CRITICAL: For daily quota resets
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. Messages Table
+-- 2. Messages Table (Stores chat history for AI memory)
 CREATE TABLE messages (
     id BIGSERIAL PRIMARY KEY,
     jid TEXT,
-    role TEXT, -- 'user' or 'model'
+    role TEXT, -- 'user' or 'ai'
     content TEXT,
     type TEXT DEFAULT 'text', -- 'text', 'image', 'audio', 'document'
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 3. Broadcasts Table
+-- 3. Broadcasts Table (For Admin announcements)
 CREATE TABLE broadcasts (
     id BIGSERIAL PRIMARY KEY,
     message TEXT,
-    status TEXT DEFAULT 'pending',
+    status TEXT DEFAULT 'pending', -- 'pending' or 'sent'
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 4. Registration Events Table (NEW)
+-- 4. Registration Events Table (Triggers automated Pro messages)
 CREATE TABLE registration_events (
     id BIGSERIAL PRIMARY KEY,
     jid TEXT,
     status TEXT DEFAULT 'pending',
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
 ```
 
 ### 2. Database Security (Mandatory RLS)

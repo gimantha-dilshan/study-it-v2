@@ -174,19 +174,27 @@ async function connectToWhatsApp() {
     });
 
     if (!socket.authState.creds.registered) {
-        const phoneNumber = await question('Enter your WhatsApp number (with country code, e.g., 94771234567): ');
+        let phoneNumber = process.env.BOT_NUMBER;
+
+        if (!phoneNumber) {
+            phoneNumber = await question('Enter your WhatsApp number (with country code, e.g., 94771234567): ');
+        } else {
+            console.log(`\n${C.yellow}[SYSTEM]${C.reset} Pairing with preset bot number: ${C.cyan}${phoneNumber}${C.reset}`);
+        }
 
         // Give the socket some time to initialize before requesting the code
         console.log('Waiting for socket to be ready for pairing code...');
         setTimeout(async () => {
             try {
-                const code = await socket.requestPairingCode(phoneNumber);
-                console.log(`\nYour Pair Code: ${code}\n`);
+                const code = await socket.requestPairingCode(phoneNumber.replace(/[^0-9]/g, ''));
+                console.log(`\n=================================================`);
+                console.log(`   YOUR PAIRING CODE: ${C.green}${C.bold}${code}${C.reset}`);
+                console.log(`=================================================\n`);
             } catch (err) {
                 console.error('Failed to request pairing code:', err);
                 console.log('Tip: If you see "Connection Closed", try running the bot again and double check your number.');
             }
-        }, 6000); // Increased delay
+        }, 6000); // 6s delay to ensure socket is ready
     }
 
     socket.ev.on('creds.update', saveCreds);

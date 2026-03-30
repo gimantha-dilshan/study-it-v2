@@ -112,14 +112,14 @@ async function startBroadcastListener(socket) {
             console.log(`✅ Broadcast [ID: ${id}] completed! (${successCount}/${users.length} sent)`);
         });
 
-    channel.subscribe((status) => {
+    channel.subscribe((status, error) => {
         if (status === 'SUBSCRIBED') {
-            console.log(`${C.green}[DATABASE]${C.reset} Broadcast Channel: ${C.bold}READY${C.reset}`);
+            console.log(`${C.green}[DATABASE]${C.reset} Broadcast Channel: ${C.bold}${C.green}READY (Listening for Live Announcements)${C.reset}`);
         } else if (status === 'CLOSED') {
             console.log(`${C.red}[DATABASE]${C.reset} Broadcast Channel: ${C.bold}CLOSED${C.reset}`);
         } else if (status === 'CHANNEL_ERROR') {
-            console.error(`${C.red}[DATABASE]${C.reset} Broadcast Channel: ${C.bold}SUBSCRIPTION ERROR${C.reset}`);
-            console.log('Tip: Make sure "Realtime" is enabled for the "broadcasts" table in your Supabase replication settings!');
+            console.error(`${C.red}[DATABASE]${C.reset} Broadcast Channel: ${C.bold}ERROR${C.reset}`, error?.message || '');
+            console.log('Tip: Make sure "Realtime" is enabled specifically in your Table Editor > Replication Settings!');
         }
     });
 }
@@ -153,14 +153,14 @@ async function startRegistrationListener(socket) {
             await handleRegistrationEvent(socket, newRow);
         });
 
-    channel.subscribe((status) => {
+    channel.subscribe((status, error) => {
         if (status === 'SUBSCRIBED') {
-            console.log(`${C.green}[DATABASE]${C.reset} Registration Channel: ${C.bold}READY${C.reset}`);
+            console.log(`${C.green}[DATABASE]${C.reset} Registration Channel: ${C.bold}${C.green}READY (Listening for Live Signups)${C.reset}`);
         } else if (status === 'CLOSED') {
             console.log(`${C.red}[DATABASE]${C.reset} Registration Channel: ${C.bold}CLOSED${C.reset}`);
         } else if (status === 'CHANNEL_ERROR') {
-            console.error(`${C.red}[DATABASE]${C.reset} Registration Channel: ${C.bold}SUBSCRIPTION ERROR${C.reset}`);
-            console.log('Tip: Make sure "Realtime" is enabled for the "registration_events" table in your Supabase replication settings!');
+            console.error(`${C.red}[DATABASE]${C.reset} Registration Channel: ${C.bold}ERROR${C.reset}`, error?.message || '');
+            console.log('Tip: Make sure "Realtime" is enabled specifically in your Table Editor > Replication Settings!');
         }
     });
 }
@@ -244,8 +244,12 @@ async function connectToWhatsApp() {
         } else if (connection === 'open') {
             console.log(`\n${C.green}${C.bold}[SUCCESS] Connected to WhatsApp!${C.reset}`);
             console.log(`${C.green}[SYSTEM] Study-It is now online and listening for messages. 🚀${C.reset}\n`);
-            startBroadcastListener(socket);
-            startRegistrationListener(socket);
+            
+            // Wait 2 seconds for Supabase background connection to stabilize before subscribing
+            setTimeout(() => {
+                startBroadcastListener(socket);
+                startRegistrationListener(socket);
+            }, 2000);
         }
     });
 

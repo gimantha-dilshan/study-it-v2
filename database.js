@@ -1,12 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
+import WebSocket from 'ws';
 import dotenv from 'dotenv';
 dotenv.config();
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 
-// Initialize Supabase Client
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Initialize Supabase Client with explicit WebSocket for Node.js Realtime support
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+    realtime: {
+        config: {
+            websocket: WebSocket
+        }
+    }
+});
 
 /**
  * Initializes the database (Checking connection)

@@ -138,11 +138,14 @@ ALTER TABLE registration_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE broadcasts ENABLE ROW LEVEL SECURITY;
 
--- Allow Website Registration
+-- Allow Website Registration (read + write for the registration page)
 CREATE POLICY "Allow public registration" ON users FOR ALL USING (true);
 CREATE POLICY "Allow registration signals" ON registration_events FOR INSERT WITH CHECK (true);
 
--- (No policies needed for messages/broadcasts as the Bot bypasses RLS)
+-- CRITICAL: Supabase Realtime filters events through RLS even with service_role key.
+-- Without SELECT policies, the bot's Realtime listeners will silently receive nothing.
+CREATE POLICY "Allow realtime broadcast reads" ON broadcasts FOR SELECT USING (true);
+CREATE POLICY "Allow realtime registration reads" ON registration_events FOR SELECT USING (true);
 ```
 
 ### 3. Environment Variables (.env)

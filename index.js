@@ -97,8 +97,12 @@ async function handleGlobalBroadcast(socket, broadcast) {
         }
     }
 
-    await supabase.from('broadcasts').update({ status: 'sent' }).eq('id', id);
-    console.log(`✅ Broadcast [ID: ${id}] completed! (${successCount}/${users.length} sent)`);
+    try {
+        await supabase.from('broadcasts').update({ status: 'sent' }).eq('id', id);
+        console.log(`✅ Broadcast [ID: ${id}] completed! (${successCount}/${users.length} transmitted)`);
+    } catch (dbErr) {
+        console.error(`❌ Failed to update broadcast status for [ID: ${id}]:`, dbErr.message);
+    }
 }
 
 async function startBroadcastListener(socket) {
@@ -209,9 +213,11 @@ async function handleRegistrationEvent(socket, event) {
         console.error(`[REGISTRATION] Error/Timeout during send:`, err.message || err);
     } finally {
         // ALWAYS mark as processed so we don't get stuck in a loop on every restart
+        // ALSO: Ensure the user is actually marked as registered in the DB
         try {
+            await supabase.from('users').update({ is_registered: true }).eq('jid', jid);
             await supabase.from('registration_events').update({ status: 'processed' }).eq('id', id);
-            console.log(`[REGISTRATION] Database status updated to: PROCESSED`);
+            console.log(`[REGISTRATION] Profile upgraded & Event marked as PROCESSED`);
         } catch (dbErr) {
             console.error(`[REGISTRATION] Failed to update DB status:`, dbErr.message);
         }

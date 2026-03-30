@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { verifyAdminPasscode, getAdminData, getAdminUserMessages } from "./actions";
+import { verifyAdminPasscode, getAdminData, getAdminUserMessages, createBroadcast } from "./actions";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -312,11 +312,17 @@ export default function AdminDashboard() {
                       if (!broadcastMessage.trim() || isBroadcasting) return;
                       setIsBroadcasting(true);
                       try {
-                        const { error } = await supabase.from('broadcasts').insert([{ message: broadcastMessage }]);
-                        if (error) throw error;
-                        showToast("Broadcast queued successfully!", "success");
-                        setBroadcastMessage(""); fetchData();
-                      } catch (err: any) { showToast("Error: " + err.message, "error"); } finally { setIsBroadcasting(false); }
+                        const result = await createBroadcast(passcode, broadcastMessage);
+                        if (!result.success) throw new Error(result.error);
+                        
+                        showToast(`Broadcast queued [ID: ${result.data.id}]`, "success");
+                        setBroadcastMessage(""); 
+                        fetchData();
+                      } catch (err: any) { 
+                        showToast("Error: " + err.message, "error"); 
+                      } finally { 
+                        setIsBroadcasting(false); 
+                      }
                     }}
                     disabled={!broadcastMessage.trim() || isBroadcasting}
                     className="w-full md:w-auto px-10 py-5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-2xl transition-all shadow-xl shadow-indigo-600/30 active:scale-95"

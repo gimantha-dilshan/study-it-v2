@@ -70,3 +70,24 @@ export async function getAdminUserMessages(passcode: string, jid: string) {
     return { success: false, error: err.message };
   }
 }
+
+export async function createBroadcast(passcode: string, message: string) {
+  const secret = process.env.ADMIN_PASSCODE;
+  if (!secret || passcode !== secret) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("broadcasts")
+      .insert([{ message, status: "pending" }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { success: true, data };
+  } catch (err: any) {
+    console.error("Create Broadcast Error:", err);
+    return { success: false, error: err.message || "Failed to queue broadcast." };
+  }
+}

@@ -26,26 +26,32 @@ export default function RegistrationPage() {
     try {
       const pureNumber = whatsappId.replace(/\D/g, "");
 
-      if (!pureNumber) {
+      if (!pureNumber || pureNumber.length < 8) {
         setStatus("error");
-        setMessage("Please enter a valid WhatsApp number.");
+        setMessage("Please enter a valid WhatsApp number with country code.");
         return;
       }
 
+      // Find the user - support both standard JID and the new LID format
       const { data: user, error: fetchError } = await supabase
         .from("users")
         .select("*")
         .or(`jid.ilike.%${pureNumber}%,phone.ilike.%${pureNumber}%`)
         .single();
 
-      if (fetchError && fetchError.code !== "PGRST116") throw fetchError;
-
-      if (!user) {
-        setStatus("error");
-        setMessage("Number not found. Please message the bot once first!");
+      if (fetchError) {
+        if (fetchError.code === "PGRST116") {
+           setStatus("error");
+           setMessage("Number not found. Please send any message to the bot on WhatsApp first so it can recognize you!");
+        } else {
+           throw fetchError;
+        }
         return;
       }
 
+      console.log("Found user profile:", user.jid);
+
+      // 1. Update the user profile to 'is_registered'
       const { error: updateError } = await supabase
         .from("users")
         .update({
@@ -54,19 +60,27 @@ export default function RegistrationPage() {
         })
         .eq("jid", user.jid);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error("Update Error:", updateError);
+        throw new Error("Failed to update profile. Check your Supabase RLS policies.");
+      }
 
-      // Trigger registration event for the WhatsApp bot
-      await supabase
+      // 2. Trigger registration event for the WhatsApp bot to send the 'Welcome' message
+      const { error: eventError } = await supabase
         .from("registration_events")
         .insert({ jid: user.jid });
 
+      if (eventError) {
+        console.error("Event Error:", eventError);
+        throw new Error("Profile updated, but failed to signal the bot. Check RLS on 'registration_events'.");
+      }
+
       setStatus("success");
-      setMessage("Your daily limit has been increased to 100 messages! Now you can continue using Study-It on Whatsapp 🚀");
+      setMessage("Your account is now Pro! You have 100 daily messages. Check your WhatsApp for a confirmation! 🚀");
     } catch (err: any) {
-      console.error(err);
+      console.error("Registration Process Error:", err);
       setStatus("error");
-      setMessage(err.message || "Something went wrong.");
+      setMessage(err.message || "A database error occurred. Please try again.");
     }
   };
 

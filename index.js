@@ -66,50 +66,68 @@ function printHeader() {
     console.log(`${C.yellow}[SYSTEM]${C.reset} Initializing Study-It core engines...`);
 }
 
+async function handleGlobalBroadcast(socket, broadcast) {
+    const { message, id } = broadcast;
+    console.log(`${C.magenta}[BROADCAST]${C.reset} Transmitting [ID: ${id}]...`);
+
+    const users = await getAllUsers();
+    console.log(`🚀 Sending broadcast to ${users.length} users...`);
+
+    const officialMessage = `📢 *STUDY-IT OFFICIAL ANNOUNCEMENT* 🎓\n` +
+        `------------------------------------------\n\n` +
+        `${message}\n\n` +
+        `------------------------------------------\n` +
+        `_Thank you for choosing Study-It. Best of luck with your studies!_ 🚀`;
+
+    const imagePath = './announcement.jpg';
+    const hasImage = fs.existsSync(imagePath);
+
+    let successCount = 0;
+    for (const user of users) {
+        try {
+            if (hasImage) {
+                await socket.sendMessage(user, { image: { url: imagePath }, caption: officialMessage });
+            } else {
+                await socket.sendMessage(user, { text: officialMessage });
+            }
+            successCount++;
+            await sleep(500); // Delay between recipients to avoid bans
+        } catch (err) {
+            console.error(`Failed to broadcast to ${user}:`, err);
+        }
+    }
+
+    await supabase.from('broadcasts').update({ status: 'sent' }).eq('id', id);
+    console.log(`✅ Broadcast [ID: ${id}] completed! (${successCount}/${users.length} sent)`);
+}
+
 async function startBroadcastListener(socket) {
     console.log(`${C.magenta}[BROADCAST]${C.reset} Initializing Global Listener...`);
+
+    // --- Catch-up: Process any pending broadcasts from when bot was offline ---
+    const { data: pendingBroadcasts } = await supabase
+        .from('broadcasts')
+        .select('*')
+        .eq('status', 'pending');
+
+    if (pendingBroadcasts && pendingBroadcasts.length > 0) {
+        console.log(`${C.magenta}[BROADCAST]${C.reset} Found ${pendingBroadcasts.length} missed broadcasts. Processing...`);
+        for (const b of pendingBroadcasts) {
+            await handleGlobalBroadcast(socket, b);
+        }
+    }
 
     const channel = supabase
         .channel('broadcasts-realtime')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'broadcasts' }, async (payload) => {
             const { eventType, new: newRow } = payload;
             
-            // Only process if it's a new insert OR an update specifically from 'pending' to something else (though bot handles its own updates)
+            // Only process if it's a new insert OR an update specifically from 'pending' to something else
             if (eventType !== 'INSERT' && eventType !== 'UPDATE') return;
             if (newRow.status !== 'pending') return;
 
-            const { message, id } = newRow;
-            console.log(`${C.magenta}[BROADCAST]${C.reset} Processing ${eventType} [ID: ${id}]`);
-
-            const users = await getAllUsers();
-            console.log(`🚀 Transmitting broadcast to ${users.length} users...`);
-
-            const officialMessage = `📢 *STUDY-IT OFFICIAL ANNOUNCEMENT* 🎓\n` +
-                `------------------------------------------\n\n` +
-                `${message}\n\n` +
-                `------------------------------------------\n` +
-                `_Thank you for choosing Study-It. Best of luck with your studies!_ 🚀`;
-
-            const imagePath = './announcement.jpg';
-            const hasImage = fs.existsSync(imagePath);
-
-            let successCount = 0;
-            for (const user of users) {
-                try {
-                    if (hasImage) {
-                        await socket.sendMessage(user, { image: { url: imagePath }, caption: officialMessage });
-                    } else {
-                        await socket.sendMessage(user, { text: officialMessage });
-                    }
-                    successCount++;
-                    await sleep(500); // Throttling
-                } catch (err) {
-                    console.error(`Failed to broadcast to ${user}:`, err);
-                }
-            }
-
-            await supabase.from('broadcasts').update({ status: 'sent' }).eq('id', id);
-            console.log(`✅ Broadcast [ID: ${id}] completed! (${successCount}/${users.length} sent)`);
+            console.log(`${C.magenta}[BROADCAST]${C.reset} Processing realtime ${eventType} [ID: ${newRow.id}]`);
+            await handleGlobalBroadcast(socket, newRow);
         });
 
     channel.subscribe((status, error) => {

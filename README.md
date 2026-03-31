@@ -84,7 +84,7 @@ study-it-v2/
 ## 🚀 Installation & Setup
 
 ### 1. Database Configuration (Supabase)
-Create three tables in your Supabase project:
+Create four tables in your Supabase project:
 
 ```sql
 -- 1. Users Table (Stores student profiles & quotas)

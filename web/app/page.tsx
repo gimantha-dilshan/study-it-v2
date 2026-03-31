@@ -1,12 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { registerUser } from "./actions";
 
 export default function RegistrationPage() {
   const [mounted, setMounted] = useState(false);
@@ -23,64 +18,14 @@ export default function RegistrationPage() {
     e.preventDefault();
     setStatus("loading");
 
-    try {
-      const pureNumber = whatsappId.replace(/\D/g, "");
+    const result = await registerUser(whatsappId, email);
 
-      if (!pureNumber || pureNumber.length < 8) {
-        setStatus("error");
-        setMessage("Please enter a valid WhatsApp number with country code.");
-        return;
-      }
-
-      // Find the user - support both standard JID and the new LID format
-      const { data: user, error: fetchError } = await supabase
-        .from("users")
-        .select("*")
-        .or(`jid.ilike.%${pureNumber}%,phone.ilike.%${pureNumber}%`)
-        .single();
-
-      if (fetchError) {
-        if (fetchError.code === "PGRST116") {
-           setStatus("error");
-           setMessage("Number not found. Please send any message to the bot on WhatsApp first so it can recognize you!");
-        } else {
-           throw fetchError;
-        }
-        return;
-      }
-
-      console.log("Found user profile:", user.jid);
-
-      // 1. Update the user profile to 'is_registered'
-      const { error: updateError } = await supabase
-        .from("users")
-        .update({
-          is_registered: true,
-          email: email
-        })
-        .eq("jid", user.jid);
-
-      if (updateError) {
-        console.error("Update Error:", updateError);
-        throw new Error("Failed to update profile. Check your Supabase RLS policies.");
-      }
-
-      // 2. Trigger registration event for the WhatsApp bot to send the 'Welcome' message
-      const { error: eventError } = await supabase
-        .from("registration_events")
-        .insert({ jid: user.jid });
-
-      if (eventError) {
-        console.error("Event Error:", eventError);
-        throw new Error("Profile updated, but failed to signal the bot. Check RLS on 'registration_events'.");
-      }
-
+    if (result.success) {
       setStatus("success");
       setMessage("Your account is now Pro! You have 100 daily messages. Check your WhatsApp for a confirmation! 🚀");
-    } catch (err: any) {
-      console.error("Registration Process Error:", err);
+    } else {
       setStatus("error");
-      setMessage(err.message || "A database error occurred. Please try again.");
+      setMessage(result.error || "A server error occurred. Please try again.");
     }
   };
 

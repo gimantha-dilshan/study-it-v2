@@ -132,24 +132,23 @@ CREATE TABLE registration_events (
 To keep your student data safe, you MUST enable Row Level Security (RLS) in the Supabase SQL Editor:
 
 ```sql
--- Enable RLS
+-- Enable RLS on all tables
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE registration_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE broadcasts ENABLE ROW LEVEL SECURITY;
 
--- Allow Website Registration (read + write for the registration page)
-CREATE POLICY "Allow public registration" ON users FOR ALL USING (true);
-CREATE POLICY "Allow registration signals" ON registration_events FOR INSERT WITH CHECK (true);
+-- No public policies on 'users' or 'messages' — all access goes through
+-- Server Actions / Bot which use the service_role key (bypasses RLS).
 
--- CRITICAL: Supabase Realtime filters events through RLS even with service_role key.
--- Without SELECT policies, the bot's Realtime listeners will silently receive nothing.
+-- Supabase Realtime requires SELECT policies to deliver postgres_changes events.
+-- Without these, the bot's Realtime listeners will silently receive nothing.
 CREATE POLICY "Allow realtime broadcast reads" ON broadcasts FOR SELECT USING (true);
 CREATE POLICY "Allow realtime registration reads" ON registration_events FOR SELECT USING (true);
 
+-- Enable Realtime replication on event-driven tables
 ALTER PUBLICATION supabase_realtime ADD TABLE broadcasts;
 ALTER PUBLICATION supabase_realtime ADD TABLE registration_events;
-
 ```
 
 ### 3. Environment Variables (.env)

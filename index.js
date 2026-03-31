@@ -56,6 +56,11 @@ Ready to begin? Just ask me a question or send a photo of your task! 📚✍️�
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Deduplication: Prevent double-processing when both Realtime and polling detect the same item
+const processingBroadcasts = new Set();
+const processingRegistrations = new Set();
+const POLL_INTERVAL = 30000; // 30 seconds
+
 // --- Professional Console Branding ---
 function printHeader() {
     console.clear();
@@ -68,40 +73,65 @@ function printHeader() {
 
 async function handleGlobalBroadcast(socket, broadcast) {
     const { message, id } = broadcast;
+
+    // Dedup: Skip if already being processed by another trigger
+    if (processingBroadcasts.has(id)) return;
+    processingBroadcasts.add(id);
+
     console.log(`${C.magenta}[BROADCAST]${C.reset} Transmitting [ID: ${id}]...`);
 
-    const users = await getAllUsers();
-    console.log(`🚀 Sending broadcast to ${users.length} users...`);
-
-    const officialMessage = `📢 *STUDY-IT OFFICIAL ANNOUNCEMENT* 🎓\n` +
-        `------------------------------------------\n\n` +
-        `${message}\n\n` +
-        `------------------------------------------\n` +
-        `_Thank you for choosing Study-It. Best of luck with your studies!_ 🚀`;
-
-    const imagePath = './announcement.jpg';
-    const hasImage = fs.existsSync(imagePath);
-
-    let successCount = 0;
-    for (const user of users) {
-        try {
-            if (hasImage) {
-                await socket.sendMessage(user, { image: { url: imagePath }, caption: officialMessage });
-            } else {
-                await socket.sendMessage(user, { text: officialMessage });
-            }
-            successCount++;
-            await sleep(500); // Delay between recipients to avoid bans
-        } catch (err) {
-            console.error(`Failed to broadcast to ${user}:`, err);
-        }
-    }
-
     try {
+        const users = await getAllUsers();
+        console.log(`🚀 Sending broadcast to ${users.length} users...`);
+
+        const officialMessage = `📢 *STUDY-IT OFFICIAL ANNOUNCEMENT* 🎓\n` +
+            `------------------------------------------\n\n` +
+            `${message}\n\n` +
+            `------------------------------------------\n` +
+            `_Thank you for choosing Study-It. Best of luck with your studies!_ 🚀`;
+
+        const imagePath = './announcement.jpg';
+        const hasImage = fs.existsSync(imagePath);
+
+        let successCount = 0;
+        for (const user of users) {
+            try {
+                if (hasImage) {
+                    await socket.sendMessage(user, { image: { url: imagePath }, caption: officialMessage });
+                } else {
+                    await socket.sendMessage(user, { text: officialMessage });
+                }
+                successCount++;
+                await sleep(500); // Delay between recipients to avoid bans
+            } catch (err) {
+                console.error(`Failed to broadcast to ${user}:`, err);
+            }
+        }
+
         await supabase.from('broadcasts').update({ status: 'sent' }).eq('id', id);
         console.log(`✅ Broadcast [ID: ${id}] completed! (${successCount}/${users.length} transmitted)`);
-    } catch (dbErr) {
-        console.error(`❌ Failed to update broadcast status for [ID: ${id}]:`, dbErr.message);
+    } catch (err) {
+        console.error(`❌ Broadcast [ID: ${id}] failed:`, err.message);
+    } finally {
+        processingBroadcasts.delete(id);
+    }
+}
+
+async function pollPendingBroadcasts(socket) {
+    try {
+        const { data: pending } = await supabase
+            .from('broadcasts')
+            .select('*')
+            .eq('status', 'pending');
+
+        if (pending && pending.length > 0) {
+            console.log(`${C.magenta}[BROADCAST POLL]${C.reset} Found ${pending.length} pending. Processing...`);
+            for (const b of pending) {
+                await handleGlobalBroadcast(socket, b);
+            }
+        }
+    } catch (err) {
+        console.error(`${C.red}[BROADCAST POLL]${C.reset} Error:`, err.message);
     }
 }
 
@@ -109,87 +139,96 @@ async function startBroadcastListener(socket) {
     console.log(`${C.magenta}[BROADCAST]${C.reset} Initializing Global Listener...`);
 
     // --- Catch-up: Process any pending broadcasts from when bot was offline ---
-    const { data: pendingBroadcasts } = await supabase
-        .from('broadcasts')
-        .select('*')
-        .eq('status', 'pending');
+    await pollPendingBroadcasts(socket);
 
-    if (pendingBroadcasts && pendingBroadcasts.length > 0) {
-        console.log(`${C.magenta}[BROADCAST]${C.reset} Found ${pendingBroadcasts.length} missed broadcasts. Processing...`);
-        for (const b of pendingBroadcasts) {
-            await handleGlobalBroadcast(socket, b);
-        }
-    }
-
+    // --- Realtime: Instant delivery when Supabase Realtime is properly configured ---
     const channel = supabase
         .channel('broadcasts-realtime')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'broadcasts' }, async (payload) => {
             const { eventType, new: newRow } = payload;
             
-            // Only process if it's a new insert OR an update specifically from 'pending' to something else
             if (eventType !== 'INSERT' && eventType !== 'UPDATE') return;
             if (newRow.status !== 'pending') return;
 
-            console.log(`${C.magenta}[BROADCAST]${C.reset} Processing realtime ${eventType} [ID: ${newRow.id}]`);
+            console.log(`${C.magenta}[BROADCAST]${C.reset} Realtime ${eventType} [ID: ${newRow.id}]`);
             await handleGlobalBroadcast(socket, newRow);
         });
 
     channel.subscribe((status, error) => {
         if (status === 'SUBSCRIBED') {
-            console.log(`${C.green}[DATABASE]${C.reset} Broadcast Channel: ${C.bold}${C.green}READY (Listening for Live Announcements)${C.reset}`);
+            console.log(`${C.green}[DATABASE]${C.reset} Broadcast Channel: ${C.bold}${C.green}READY (Realtime + Polling every ${POLL_INTERVAL / 1000}s)${C.reset}`);
         } else if (status === 'CLOSED') {
             console.log(`${C.red}[DATABASE]${C.reset} Broadcast Channel: ${C.bold}CLOSED${C.reset}`);
         } else if (status === 'CHANNEL_ERROR') {
             console.error(`${C.red}[DATABASE]${C.reset} Broadcast Channel: ${C.bold}ERROR${C.reset}`, error?.message || '');
-            console.log('Tip: Make sure "Realtime" is enabled specifically in your Table Editor > Replication Settings!');
+            console.log('Tip: Run this SQL in Supabase: ALTER PUBLICATION supabase_realtime ADD TABLE broadcasts;');
         }
     });
+
+    // --- Polling Fallback: Guarantees delivery even if Realtime is misconfigured ---
+    setInterval(() => pollPendingBroadcasts(socket), POLL_INTERVAL);
+}
+
+async function pollPendingRegistrations(socket) {
+    try {
+        const { data: pending } = await supabase
+            .from('registration_events')
+            .select('*')
+            .eq('status', 'pending');
+
+        if (pending && pending.length > 0) {
+            console.log(`${C.magenta}[REGISTRATION POLL]${C.reset} Found ${pending.length} pending. Processing...`);
+            for (const event of pending) {
+                await handleRegistrationEvent(socket, event);
+            }
+        }
+    } catch (err) {
+        console.error(`${C.red}[REGISTRATION POLL]${C.reset} Error:`, err.message);
+    }
 }
 
 async function startRegistrationListener(socket) {
     console.log(`${C.magenta}[REGISTRATION]${C.reset} Initializing Global Listener...`);
 
     // --- Catch-up: Process any pending registrations from when bot was offline ---
-    const { data: pendingEvents } = await supabase
-        .from('registration_events')
-        .select('*')
-        .eq('status', 'pending');
+    await pollPendingRegistrations(socket);
 
-    if (pendingEvents && pendingEvents.length > 0) {
-        console.log(`${C.magenta}[REGISTRATION]${C.reset} Processing ${pendingEvents.length} missed registrations...`);
-        for (const event of pendingEvents) {
-            await handleRegistrationEvent(socket, event);
-        }
-    }
-
+    // --- Realtime: Instant delivery when Supabase Realtime is properly configured ---
     const channel = supabase
         .channel('registrations-realtime')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'registration_events' }, async (payload) => {
             const { eventType, new: newRow } = payload;
             
-            // Only process if it's a new insert OR an update specifically from 'pending' to something else
             if (eventType !== 'INSERT' && eventType !== 'UPDATE') return;
             if (newRow.status !== 'pending') return;
 
-            console.log(`${C.magenta}[REGISTRATION]${C.reset} Processing ${eventType} for: ${newRow.jid}`);
+            console.log(`${C.magenta}[REGISTRATION]${C.reset} Realtime ${eventType} for: ${newRow.jid}`);
             await handleRegistrationEvent(socket, newRow);
         });
 
     channel.subscribe((status, error) => {
         if (status === 'SUBSCRIBED') {
-            console.log(`${C.green}[DATABASE]${C.reset} Registration Channel: ${C.bold}${C.green}READY (Listening for Live Signups)${C.reset}`);
+            console.log(`${C.green}[DATABASE]${C.reset} Registration Channel: ${C.bold}${C.green}READY (Realtime + Polling every ${POLL_INTERVAL / 1000}s)${C.reset}`);
         } else if (status === 'CLOSED') {
             console.log(`${C.red}[DATABASE]${C.reset} Registration Channel: ${C.bold}CLOSED${C.reset}`);
         } else if (status === 'CHANNEL_ERROR') {
             console.error(`${C.red}[DATABASE]${C.reset} Registration Channel: ${C.bold}ERROR${C.reset}`, error?.message || '');
-            console.log('Tip: Make sure "Realtime" is enabled specifically in your Table Editor > Replication Settings!');
+            console.log('Tip: Run this SQL in Supabase: ALTER PUBLICATION supabase_realtime ADD TABLE registration_events;');
         }
     });
+
+    // --- Polling Fallback: Guarantees delivery even if Realtime is misconfigured ---
+    setInterval(() => pollPendingRegistrations(socket), POLL_INTERVAL);
 }
 
 // Helper to handle the actual messaging and DB update
 async function handleRegistrationEvent(socket, event) {
     const { jid, id } = event;
+
+    // Dedup: Skip if already being processed by another trigger
+    if (processingRegistrations.has(id)) return;
+    processingRegistrations.add(id);
+
     console.log(`${C.magenta}[REGISTRATION]${C.reset} Processing ID: ${id} for: ${jid}`);
 
     const welcomePro = `🎉 *CONGRATULATIONS!* 🎓✨\n\n` +
@@ -221,6 +260,7 @@ async function handleRegistrationEvent(socket, event) {
         } catch (dbErr) {
             console.error(`[REGISTRATION] Failed to update DB status:`, dbErr.message);
         }
+        processingRegistrations.delete(id);
     }
 }
 

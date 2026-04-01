@@ -61,6 +61,9 @@ const processingBroadcasts = new Set();
 const processingRegistrations = new Set();
 const POLL_INTERVAL = 30000; // 30 seconds
 
+// Track bot-automated messages so we can distinguish them from manual owner messages
+const botSentIds = new Set();
+
 // --- Professional Console Branding ---
 function printHeader() {
     console.clear();
@@ -279,6 +282,17 @@ async function connectToWhatsApp() {
         printQRInTerminal: false,
     });
 
+    // Wrap sendMessage to auto-track bot-sent message IDs
+    const _originalSendMessage = socket.sendMessage.bind(socket);
+    socket.sendMessage = async (...args) => {
+        const sent = await _originalSendMessage(...args);
+        if (sent?.key?.id) {
+            botSentIds.add(sent.key.id);
+            setTimeout(() => botSentIds.delete(sent.key.id), 60000); // auto-cleanup after 60s
+        }
+        return sent;
+    };
+
     if (!socket.authState.creds.registered) {
         let phoneNumber = process.env.BOT_NUMBER;
 
@@ -334,7 +348,23 @@ async function connectToWhatsApp() {
 
     socket.ev.on('messages.upsert', async (m) => {
         const msg = m.messages[0];
-        if (!msg.message || msg.key.fromMe) return;
+        if (!msg.message) return;
+
+        // Handle outgoing messages (fromMe)
+        if (msg.key.fromMe) {
+            // Skip bot-automated messages (already saved to DB by the send logic)
+            if (botSentIds.has(msg.key.id)) {
+                botSentIds.delete(msg.key.id);
+                return;
+            }
+            // This is a MANUAL message sent by the owner — save for AI context
+            const manualText = msg.message.conversation || msg.message.extendedTextMessage?.text;
+            if (manualText && msg.key.remoteJid) {
+                await saveMessage(msg.key.remoteJid, 'model', manualText, 'text');
+                console.log(`${C.yellow}[MANUAL]${C.reset} Saved outgoing message to ${msg.key.remoteJid}`);
+            }
+            return;
+        }
 
         // 🛑 PREVENTS QUOTA EXCEEDED: Ignore messages older than 60 seconds
         const msgTimestamp = msg.messageTimestamp;

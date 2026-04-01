@@ -74,7 +74,7 @@ export default function RegistrationPage() {
               </div>
               <div className="text-left">
                 <h3 className="font-semibold text-white">Full AI Power</h3>
-                <p className="text-sm text-gray-500">Unrestricted Gemini access.</p>
+                <p className="text-sm text-gray-500">Unrestricted Study-It AI access.</p>
               </div>
             </div>
           </div>
@@ -166,11 +166,11 @@ export default function RegistrationPage() {
 
       {/* Footer Decoration */}
       <footer className="mt-20 text-gray-600 text-sm flex gap-6 z-10">
-        <span>Supabase DB</span>
+        <span>Smart</span>
         <span>•</span>
-        <span>Gemini AI</span>
+        <span>Powerfull</span>
         <span>•</span>
-        <span>Baileys WA</span>
+        <span>Intelligence</span>
       </footer>
     </main>
   );

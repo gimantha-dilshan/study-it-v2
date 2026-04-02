@@ -267,6 +267,12 @@ async function handleRegistrationEvent(socket, event) {
     }
 }
 
+// Helper to extract content from a Baileys message object
+function getMessageText(m) {
+    if (!m) return "";
+    return m.conversation || m.extendedTextMessage?.text || m.imageMessage?.caption || m.videoMessage?.caption || m.documentMessage?.caption || "";
+}
+
 async function connectToWhatsApp() {
     printHeader();
     await initDB(); // Initialize the database
@@ -381,6 +387,36 @@ async function connectToWhatsApp() {
         const audioMessage = msg.message.audioMessage;
         const documentMessage = msg.message.documentMessage;
 
+        // --- QUOTED MESSAGE CONTEXT ---
+        const contextInfo = msg.message.extendedTextMessage?.contextInfo || 
+                            msg.message.imageMessage?.contextInfo || 
+                            msg.message.audioMessage?.contextInfo || 
+                            msg.message.documentMessage?.contextInfo;
+        
+        const quotedMsg = contextInfo?.quotedMessage;
+        const quotedParticipant = contextInfo?.participant;
+        
+        let quotedText = "";
+        if (quotedMsg) {
+            const botJid = socket.user.id.split(':')[0] + '@s.whatsapp.net';
+            const isBot = quotedParticipant === botJid;
+            const rawQuoted = getMessageText(quotedMsg);
+            if (rawQuoted) {
+                quotedText = `[Quoted from ${isBot ? 'Study-It' : 'User'}]: "${rawQuoted}"`;
+            } else if (quotedMsg.imageMessage) {
+                quotedText = `[Quoted from ${isBot ? 'Study-It' : 'User'}]: (Sent an Image)`;
+            } else if (quotedMsg.audioMessage) {
+                quotedText = `[Quoted from ${isBot ? 'Study-It' : 'User'}]: (Sent a Voice Note)`;
+            } else if (quotedMsg.documentMessage) {
+                quotedText = `[Quoted from ${isBot ? 'Study-It' : 'User'}]: (Sent a Document: ${quotedMsg.documentMessage.fileName || 'PDF'})`;
+            }
+        }
+
+        const getCombinedPrompt = (current) => {
+            if (!quotedText) return current;
+            return `${quotedText}\n\n[Current Message]: ${current || "(Media)"}`;
+        };
+
         try {
             // PHONE DETECTION (For LID Support)
             const altId = msg.key.remoteJidAlt || msg.key.participantAlt || "";
@@ -430,10 +466,13 @@ async function connectToWhatsApp() {
                 const caption = imageMessage.caption || "Analyze this homework image.";
 
                 // Save user image message
-                await saveMessage(remoteJid, 'user', caption, 'image');
+                const combinedPrompt = getCombinedPrompt(caption);
+                await saveMessage(remoteJid, 'user', combinedPrompt, 'image');
 
                 await socket.sendMessage(remoteJid, { text: "Thinking about your image... 🧐" }, { quoted: msg });
-                const aiResponse = await askGemini(remoteJid, caption, [{ mimeType: 'image/jpeg', data: base64Image }]);
+                
+                // If quoting an image, we handle it as part of the turn prompt
+                const aiResponse = await askGemini(remoteJid, combinedPrompt, [{ mimeType: 'image/jpeg', data: base64Image }]);
 
                 await incrementUsage(remoteJid);
                 await socket.sendMessage(remoteJid, { text: aiResponse }, { quoted: msg });
@@ -461,11 +500,12 @@ async function connectToWhatsApp() {
                 const base64Audio = buffer.toString('base64');
 
                 // Save user audio message
-                await saveMessage(remoteJid, 'user', '[Audio Message]', 'audio');
+                const combinedPrompt = getCombinedPrompt("[Audio Message]");
+                await saveMessage(remoteJid, 'user', combinedPrompt, 'audio');
 
                 await socket.sendMessage(remoteJid, { text: "Listening to your voice note... 👂" }, { quoted: msg });
 
-                const aiResponse = await askGemini(remoteJid, "User sent a voice note. Listen and respond.", [{ mimeType: 'audio/ogg', data: base64Audio }]);
+                const aiResponse = await askGemini(remoteJid, combinedPrompt, [{ mimeType: 'audio/ogg', data: base64Audio }]);
 
                 await incrementUsage(remoteJid);
                 await socket.sendMessage(remoteJid, { text: aiResponse }, { quoted: msg });
@@ -494,10 +534,11 @@ async function connectToWhatsApp() {
                 const caption = documentMessage.caption || "Analyze this PDF document.";
 
                 // Save user document message
-                await saveMessage(remoteJid, 'user', '[PDF Document]', 'document');
+                const combinedPrompt = getCombinedPrompt(caption);
+                await saveMessage(remoteJid, 'user', combinedPrompt, 'document');
 
                 await socket.sendMessage(remoteJid, { text: "Reading your document... 📄" }, { quoted: msg });
-                const aiResponse = await askGemini(remoteJid, caption, [{ mimeType: 'application/pdf', data: base64Pdf }]);
+                const aiResponse = await askGemini(remoteJid, combinedPrompt, [{ mimeType: 'application/pdf', data: base64Pdf }]);
 
                 await incrementUsage(remoteJid);
                 await socket.sendMessage(remoteJid, { text: aiResponse }, { quoted: msg });
@@ -559,9 +600,39 @@ async function connectToWhatsApp() {
                 await socket.sendPresenceUpdate('composing', remoteJid);
 
                 // Save user text message
-                await saveMessage(remoteJid, 'user', textMessage, 'text');
+                const combinedPrompt = getCombinedPrompt(textMessage);
+                await saveMessage(remoteJid, 'user', combinedPrompt, 'text');
 
-                const aiResponse = await askGemini(remoteJid, textMessage);
+                // EXTRA: If user replied with text to an image/audio/PDF quote,
+                // we should download the quoted media so Gemini can "see" it!
+                let mimes = [];
+                if (quotedMsg?.imageMessage) {
+                    console.log(`[QUOTED] Downloading image from context info...`);
+                    const stream = await downloadContentFromMessage(quotedMsg.imageMessage, 'image');
+                    let buffer = Buffer.from([]);
+                    for await (const chunk of stream) {
+                        buffer = Buffer.concat([buffer, chunk]);
+                    }
+                    mimes.push({ mimeType: 'image/jpeg', data: buffer.toString('base64') });
+                } else if (quotedMsg?.audioMessage) {
+                    console.log(`[QUOTED] Downloading audio from context info...`);
+                    const stream = await downloadContentFromMessage(quotedMsg.audioMessage, 'audio');
+                    let buffer = Buffer.from([]);
+                    for await (const chunk of stream) {
+                        buffer = Buffer.concat([buffer, chunk]);
+                    }
+                    mimes.push({ mimeType: 'audio/ogg', data: buffer.toString('base64') });
+                } else if (quotedMsg?.documentMessage && quotedMsg.documentMessage.mimetype === 'application/pdf') {
+                    console.log(`[QUOTED] Downloading PDF from context info...`);
+                    const stream = await downloadContentFromMessage(quotedMsg.documentMessage, 'document');
+                    let buffer = Buffer.from([]);
+                    for await (const chunk of stream) {
+                        buffer = Buffer.concat([buffer, chunk]);
+                    }
+                    mimes.push({ mimeType: 'application/pdf', data: buffer.toString('base64') });
+                }
+
+                const aiResponse = await askGemini(remoteJid, combinedPrompt, mimes);
 
                 await incrementUsage(remoteJid);
                 await socket.sendPresenceUpdate('paused', remoteJid);

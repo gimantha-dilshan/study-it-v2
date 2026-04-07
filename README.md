@@ -115,6 +115,7 @@ CREATE TABLE broadcasts (
     id BIGSERIAL PRIMARY KEY,
     message TEXT,
     status TEXT DEFAULT 'pending', -- 'pending' or 'sent'
+    target_jids JSONB DEFAULT NULL, -- NEW: For targeted broadcasts
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

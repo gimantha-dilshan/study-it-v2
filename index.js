@@ -88,10 +88,10 @@ async function handleGlobalBroadcast(socket, broadcast) {
         console.log(`🚀 Sending broadcast to ${users.length} users... ${target_jids ? '(Targeted)' : '(Global)'}`);
 
         const officialMessage = `📢 *STUDY-IT OFFICIAL ANNOUNCEMENT* 🎓\n` +
-            `------------------------------------------\n\n` +
+            `-------------------\n\n` +
             `${message}\n\n` +
-            `------------------------------------------\n` +
-            `_Thank you for choosing Study-It. Best of luck with your studies!_ 🚀`;
+            `-------------------\n` +
+            `_Thank you for choosing Study-It_ 🚀`;
 
         const imagePath = './announcement.jpg';
         const hasImage = fs.existsSync(imagePath);
@@ -149,7 +149,7 @@ async function startBroadcastListener(socket) {
         .channel('broadcasts-realtime')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'broadcasts' }, async (payload) => {
             const { eventType, new: newRow } = payload;
-            
+
             if (eventType !== 'INSERT' && eventType !== 'UPDATE') return;
             if (newRow.status !== 'pending') return;
 
@@ -201,7 +201,7 @@ async function startRegistrationListener(socket) {
         .channel('registrations-realtime')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'registration_events' }, async (payload) => {
             const { eventType, new: newRow } = payload;
-            
+
             if (eventType !== 'INSERT' && eventType !== 'UPDATE') return;
             if (newRow.status !== 'pending') return;
 
@@ -243,7 +243,7 @@ async function handleRegistrationEvent(socket, event) {
 
     try {
         console.log(`[REGISTRATION] Attempting to send message to ${jid}...`);
-        
+
         // Safety timeout: If the socket hangs for more than 10 seconds, skip the message
         await Promise.race([
             socket.sendMessage(jid, { text: welcomePro }),
@@ -343,7 +343,7 @@ async function connectToWhatsApp() {
         } else if (connection === 'open') {
             console.log(`\n${C.green}${C.bold}[SUCCESS] Connected to WhatsApp!${C.reset}`);
             console.log(`${C.green}[SYSTEM] Study-It is now online and listening for messages. 🚀${C.reset}\n`);
-            
+
             // Wait 2 seconds for Supabase background connection to stabilize before subscribing
             setTimeout(() => {
                 startBroadcastListener(socket);
@@ -388,14 +388,14 @@ async function connectToWhatsApp() {
         const documentMessage = msg.message.documentMessage;
 
         // --- QUOTED MESSAGE CONTEXT ---
-        const contextInfo = msg.message.extendedTextMessage?.contextInfo || 
-                            msg.message.imageMessage?.contextInfo || 
-                            msg.message.audioMessage?.contextInfo || 
-                            msg.message.documentMessage?.contextInfo;
-        
+        const contextInfo = msg.message.extendedTextMessage?.contextInfo ||
+            msg.message.imageMessage?.contextInfo ||
+            msg.message.audioMessage?.contextInfo ||
+            msg.message.documentMessage?.contextInfo;
+
         const quotedMsg = contextInfo?.quotedMessage;
         const quotedParticipant = contextInfo?.participant;
-        
+
         let quotedText = "";
         if (quotedMsg) {
             const botJid = socket.user.id.split(':')[0] + '@s.whatsapp.net';
@@ -470,7 +470,7 @@ async function connectToWhatsApp() {
                 await saveMessage(remoteJid, 'user', combinedPrompt, 'image');
 
                 await socket.sendMessage(remoteJid, { text: "Thinking about your image... 🧐" }, { quoted: msg });
-                
+
                 // If quoting an image, we handle it as part of the turn prompt
                 const aiResponse = await askGemini(remoteJid, combinedPrompt, [{ mimeType: 'image/jpeg', data: base64Image }]);
 

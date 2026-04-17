@@ -1,9 +1,16 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Camera, Mic, FileText, ShieldAlert } from "lucide-react";
+import { Camera, Mic, FileText, ShieldAlert, DatabaseZap, MessageCircleCheck } from "lucide-react";
 
 const features = [
+  {
+    icon: <DatabaseZap className="w-8 h-8 text-indigo-400" />,
+    title: "Smart Memory",
+    description: "Study-It remembers your previous conversations and learning patterns, allowing for personalized and context-aware assistance.",
+    color: "from-indigo-500/20 to-transparent",
+    border: "group-hover:border-indigo-500/50"
+  },
   {
     icon: <Camera className="w-8 h-8 text-indigo-400" />,
     title: "Smart OCR Analysis",
@@ -31,6 +38,13 @@ const features = [
     description: "If the primary AI model fails, we automatically cycle through secondary models and backup APIs. 100% Guaranteed uptime.",
     color: "from-green-500/20 to-transparent",
     border: "group-hover:border-green-500/50"
+  },
+  {
+    icon: <MessageCircleCheck className="w-8 h-8 text-indigo-400" />,
+    title: "Always Online",
+    description: "Study-It is always available 24/7, ensuring you get the help you need whenever you need it.",
+    color: "from-indigo-500/20 to-transparent",
+    border: "group-hover:border-indigo-500/50"
   }
 ];
 
@@ -38,13 +52,13 @@ export default function Features() {
   return (
     <section id="features" className="relative py-32 px-4 sm:px-6 lg:px-8 z-10 border-t border-white/5 bg-black/50">
       <div className="max-w-7xl mx-auto space-y-20">
-        
+
         <div className="text-center space-y-6">
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter text-white glow-text">
             Intelligence. <span className="text-indigo-400">Multimodal.</span>
           </h2>
           <p className="text-xl text-gray-400 max-w-2xl mx-auto font-medium">
-            No matter how you learn, Study-It adapts. Voice, Image, PDF, or Plain Text—we process it all natively.
+            No matter how you learn, Study-It adapts. Voice, Image, PDF, or Plain Text. we process it all natively.
           </p>
         </div>
 
@@ -60,7 +74,7 @@ export default function Features() {
             >
               {/* Radial background gradient matching the brand */}
               <div className={`absolute top-0 left-0 right-0 h-32 bg-gradient-to-b ${feature.color} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-              
+
               <div className="relative z-10 space-y-6 pt-4">
                 <div className="w-16 h-16 rounded-2xl bg-white/[0.05] border border-white/10 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-500">
                   {feature.icon}

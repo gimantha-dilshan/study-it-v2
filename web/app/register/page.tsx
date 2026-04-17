@@ -4,15 +4,10 @@ import { useState, useEffect } from "react";
 import { registerUser } from "../actions";
 
 export default function RegistrationPage() {
-  const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState("");
   const [whatsappId, setWhatsappId] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,8 +23,6 @@ export default function RegistrationPage() {
       setMessage(result.error || "A server error occurred. Please try again.");
     }
   };
-
-  if (!mounted) return <div className="min-h-screen bg-black" />;
 
   return (
     <main className="relative min-h-screen w-full flex flex-col items-center justify-center p-4 md:p-8 overflow-hidden bg-[#030303]">

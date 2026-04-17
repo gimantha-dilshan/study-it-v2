@@ -91,9 +91,14 @@ export async function createBroadcast(passcode: string, message: string, targetJ
     
     // Instant Delivery: Push to Upstash Redis queue.
     try {
-      await redis.lpush("queue:broadcasts", JSON.stringify({ id: data.id, message, target_jids: targetJids }));
-    } catch (redisErr) {
-      console.warn("Redis push failed (relying on polling fallback):", redisErr);
+      const restUrl = process.env.UPSTASH_REDIS_REST_URL;
+      const restToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+      console.log(`[REDIS DEBUG] REST URL present: ${!!restUrl}, Token present: ${!!restToken}`);
+      
+      const pushResult = await redis.lpush("queue:broadcasts", JSON.stringify({ id: data.id, message, target_jids: targetJids }));
+      console.log(`[REDIS DEBUG] lpush result (queue length):`, pushResult);
+    } catch (redisErr: any) {
+      console.error("[REDIS ERROR] Push failed:", redisErr?.message || redisErr);
     }
     return { success: true, data };
   } catch (err: any) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Camera, Mic, FileText, ShieldAlert, DatabaseZap, MessageCircleCheck } from "lucide-react";
+import { Camera, Mic, FileText, ShieldAlert, DatabaseZap, MessageCircleCheck, BookType } from "lucide-react";
 
 const features = [
   {
@@ -29,6 +29,13 @@ const features = [
     icon: <FileText className="w-8 h-8 text-blue-400" />,
     title: "Document Mastery",
     description: "Upload PDF textbooks or study guides. The bot summarizes entire chapters or pinpoints specific answers from the text.",
+    color: "from-blue-500/20 to-transparent",
+    border: "group-hover:border-blue-500/50"
+  },
+  {
+    icon: <BookType className="w-8 h-8 text-blue-400" />,
+    title: "Multi Language Support",
+    description: "Study-It supports multiple languages, allowing you to get help in the language you are most comfortable with.",
     color: "from-blue-500/20 to-transparent",
     border: "group-hover:border-blue-500/50"
   },

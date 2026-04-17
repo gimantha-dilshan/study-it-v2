@@ -44,8 +44,8 @@ export default function HowItWorks() {
             {steps.map((step, idx) => (
               <motion.div
                 key={idx}
-                initial={{ opacity: 0, x: 50 }}
-                whileInView={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ duration: 0.6, delay: idx * 0.2 }}
                 className="glass p-6 rounded-[2rem] flex items-center gap-6 relative overflow-hidden group"

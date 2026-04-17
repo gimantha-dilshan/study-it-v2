@@ -58,9 +58,9 @@ export default function Hero() {
 
           <div className="pt-8 flex items-center justify-center lg:justify-start gap-6 text-sm font-bold text-gray-500">
             <div className="flex -space-x-4">
-              <img className="w-10 h-10 rounded-full border-2 border-black" src="https://i.pravatar.cc/100?img=1" alt="" />
-              <img className="w-10 h-10 rounded-full border-2 border-black" src="https://i.pravatar.cc/100?img=2" alt="" />
-              <img className="w-10 h-10 rounded-full border-2 border-black" src="https://i.pravatar.cc/100?img=3" alt="" />
+              <img className="w-10 h-10 rounded-full border-2 border-black" src="https://i.pravatar.cc/100?img=16" alt="" />
+              <img className="w-10 h-10 rounded-full border-2 border-black" src="https://i.pravatar.cc/100?img=8" alt="" />
+              <img className="w-10 h-10 rounded-full border-2 border-black" src="https://i.pravatar.cc/100?img=4" alt="" />
               <div className="w-10 h-10 rounded-full border-2 border-black bg-indigo-600 flex items-center justify-center text-white text-xs font-black">+2k</div>
             </div>
             <p>Trusted by <span className="text-white">thousands</span><br />of students worldwide.</p>
@@ -79,15 +79,15 @@ export default function Hero() {
 
           <div className="relative w-full max-w-lg aspect-square lg:aspect-auto lg:h-[90%] rounded-[3rem] glass-card overflow-hidden shadow-[0_0_80px_rgba(99,102,241,0.2)] border border-white/20 transform hover:scale-[1.02] transition-transform duration-500">
             {/* We use next/image. Ensure it handles the path correctly. */}
-              <Image
-                src="/bot-image.webp"
-                alt="StudyIt AI Bot Preview"
-                fill
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                quality={95}
-                className="object-cover opacity-90 scale-105"
-                priority
-              />
+            <Image
+              src="/bot-image.webp"
+              alt="StudyIt AI Bot Preview"
+              fill
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              quality={95}
+              className="object-cover opacity-90 scale-105"
+              priority
+            />
 
 
           </div>

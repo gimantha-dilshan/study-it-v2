@@ -89,6 +89,7 @@ if (redisUrl) {
 let broadcastPollInterval = null;
 let registrationPollInterval = null;
 let isRedisListening = false;
+let currentSocket = null;
 
 // --- Professional Console Branding ---
 function printHeader() {
@@ -100,7 +101,7 @@ function printHeader() {
     console.log(`${C.yellow}[SYSTEM]${C.reset} Initializing Study-It core engines...`);
 }
 
-async function handleGlobalBroadcast(socket, broadcast) {
+async function handleGlobalBroadcast(broadcast) {
     const { message, id, target_jids } = broadcast;
 
     // Dedup: Skip if already being processed in memory
@@ -123,7 +124,7 @@ async function handleGlobalBroadcast(socket, broadcast) {
 
     try {
         // Connection Check: Ensure socket is initialized and likely connected
-        if (!socket || !socket.user) {
+        if (!currentSocket || !currentSocket.user) {
             console.error(`${C.red}[BROADCAST]${C.reset} Critical: Socket not ready. Aborting.`);
             processingBroadcasts.delete(id);
             return;
@@ -158,9 +159,9 @@ async function handleGlobalBroadcast(socket, broadcast) {
                     try {
                         attempts++;
                         if (hasImage) {
-                            await socket.sendMessage(jid, { image: { url: imagePath }, caption: officialMessage });
+                            await currentSocket.sendMessage(jid, { image: { url: imagePath }, caption: officialMessage });
                         } else {
-                            await socket.sendMessage(jid, { text: officialMessage });
+                            await currentSocket.sendMessage(jid, { text: officialMessage });
                         }
                         sent = true; 
                     } catch (err) {
@@ -194,7 +195,7 @@ async function handleGlobalBroadcast(socket, broadcast) {
     }
 }
 
-async function pollPendingBroadcasts(socket) {
+async function pollPendingBroadcasts() {
     try {
         const { data: pending } = await supabase
             .from('broadcasts')
@@ -204,7 +205,7 @@ async function pollPendingBroadcasts(socket) {
         if (pending && pending.length > 0) {
             console.log(`${C.magenta}[BROADCAST POLL]${C.reset} Found ${pending.length} pending. Processing...`);
             for (const b of pending) {
-                await handleGlobalBroadcast(socket, b);
+                await handleGlobalBroadcast(b);
             }
         }
     } catch (err) {
@@ -212,15 +213,15 @@ async function pollPendingBroadcasts(socket) {
     }
 }
 
-async function startBroadcastListener(socket) {
+async function startBroadcastListener() {
     console.log(`${C.magenta}[BROADCAST]${C.reset} Initializing Polling Fallback...`);
-    await pollPendingBroadcasts(socket);
+    await pollPendingBroadcasts();
     
     if (broadcastPollInterval) clearInterval(broadcastPollInterval);
-    broadcastPollInterval = setInterval(() => pollPendingBroadcasts(socket), POLL_INTERVAL);
+    broadcastPollInterval = setInterval(() => pollPendingBroadcasts(), POLL_INTERVAL);
 }
 
-async function pollPendingRegistrations(socket) {
+async function pollPendingRegistrations() {
     try {
         const { data: pending } = await supabase
             .from('registration_events')
@@ -230,7 +231,7 @@ async function pollPendingRegistrations(socket) {
         if (pending && pending.length > 0) {
             console.log(`${C.magenta}[REGISTRATION POLL]${C.reset} Found ${pending.length} pending. Processing...`);
             for (const event of pending) {
-                await handleRegistrationEvent(socket, event);
+                await handleRegistrationEvent(event);
             }
         }
     } catch (err) {
@@ -238,15 +239,15 @@ async function pollPendingRegistrations(socket) {
     }
 }
 
-async function startRegistrationListener(socket) {
+async function startRegistrationListener() {
     console.log(`${C.magenta}[REGISTRATION]${C.reset} Initializing Polling Fallback...`);
-    await pollPendingRegistrations(socket);
+    await pollPendingRegistrations();
     
     if (registrationPollInterval) clearInterval(registrationPollInterval);
-    registrationPollInterval = setInterval(() => pollPendingRegistrations(socket), POLL_INTERVAL);
+    registrationPollInterval = setInterval(() => pollPendingRegistrations(), POLL_INTERVAL);
 }
 
-async function listenToRedisQueues(socket) {
+async function listenToRedisQueues() {
     if (!redisClient) {
         console.log(`${C.yellow}[REDIS]${C.reset} REDIS_URL not found. Skipping instant queue listeners.`);
         return;
@@ -269,10 +270,10 @@ async function listenToRedisQueues(socket) {
             
             if (queueName === 'queue:broadcasts') {
                 console.log(`${C.magenta}[REDIS]${C.reset} Instant Broadcast received!`);
-                await handleGlobalBroadcast(socket, data);
+                await handleGlobalBroadcast(data);
             } else if (queueName === 'queue:registrations') {
                 console.log(`${C.magenta}[REDIS]${C.reset} Instant Registration received!`);
-                await handleRegistrationEvent(socket, data);
+                await handleRegistrationEvent(data);
             }
         } catch (err) {
             console.error(`${C.red}[REDIS ERROR]${C.reset}:`, err.message);
@@ -282,7 +283,7 @@ async function listenToRedisQueues(socket) {
 }
 
 // Helper to handle the actual messaging and DB update
-async function handleRegistrationEvent(socket, event) {
+async function handleRegistrationEvent(event) {
     const { jid, id } = event;
 
     // Dedup: Skip if already being processed in memory
@@ -315,7 +316,7 @@ async function handleRegistrationEvent(socket, event) {
 
         // Safety timeout: If the socket hangs for more than 10 seconds, skip the message
         await Promise.race([
-            socket.sendMessage(jid, { text: welcomePro }),
+            currentSocket.sendMessage(jid, { text: welcomePro }),
             new Promise((_, reject) => setTimeout(() => reject(new Error('WhatsApp Send Timeout')), 10000))
         ]);
 
@@ -356,6 +357,8 @@ async function connectToWhatsApp() {
         browser: ['Ubuntu', 'Chrome', '20.0.04'],
         printQRInTerminal: false,
     });
+
+    currentSocket = socket; // Globally expose latest socket
 
     // Wrap sendMessage to auto-track bot-sent message IDs
     const _originalSendMessage = socket.sendMessage.bind(socket);
@@ -415,9 +418,9 @@ async function connectToWhatsApp() {
 
             // Wait 2 seconds for Supabase background connection to stabilize before subscribing
             setTimeout(() => {
-                startBroadcastListener(socket);
-                startRegistrationListener(socket);
-                listenToRedisQueues(socket);
+                startBroadcastListener();
+                startRegistrationListener();
+                listenToRedisQueues();
             }, 2000);
         }
     });

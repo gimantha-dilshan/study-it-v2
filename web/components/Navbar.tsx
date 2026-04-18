@@ -25,6 +25,7 @@ export default function Navbar() {
               <a href="/#features" className="text-gray-300 hover:text-white transition-colors text-sm font-semibold tracking-wide">Features</a>
               <a href="/#how-it-works" className="text-gray-300 hover:text-white transition-colors text-sm font-semibold tracking-wide">How it Works</a>
               <a href="/#pricing" className="text-gray-300 hover:text-white transition-colors text-sm font-semibold tracking-wide">Pricing</a>
+              <a href="/#contact" className="text-gray-300 hover:text-white transition-colors text-sm font-semibold tracking-wide">Contact</a>
               <Link href="/register" className="px-6 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full text-white text-sm font-bold transition-all shadow-lg hover:shadow-indigo-500/20 active:scale-95">
                 Register Now
               </Link>
@@ -55,6 +56,7 @@ export default function Navbar() {
               <a href="/#features" onClick={() => setIsOpen(false)} className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Features</a>
               <a href="/#how-it-works" onClick={() => setIsOpen(false)} className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">How it Works</a>
               <a href="/#pricing" onClick={() => setIsOpen(false)} className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Pricing</a>
+              <a href="/#contact" onClick={() => setIsOpen(false)} className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Contact</a>
               <Link href="/register" onClick={() => setIsOpen(false)} className="block w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white text-base font-bold transition-all">
                 Register Pro
               </Link>

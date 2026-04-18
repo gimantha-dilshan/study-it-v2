@@ -72,7 +72,7 @@ if (redisUrl) {
     // ioredis requires maxRetriesPerRequest: null for blocking operations (BLPOP) to prevent crashes.
     redisClient = new Redis(redisUrl, {
         maxRetriesPerRequest: null,
-        tls: { rejectUnauthorized: false }, 
+        tls: { rejectUnauthorized: false },
         retryStrategy(times) {
             return Math.min(times * 50, 2000); // Backoff reconnect smoothly
         }
@@ -147,7 +147,7 @@ async function handleGlobalBroadcast(broadcast) {
             try {
                 // Formatting Check: Ensure JID has the correct domain
                 const jid = user.includes('@') ? user : `${user}@s.whatsapp.net`;
-                
+
                 console.log(`[BROADCAST] Processing: ${jid}...`);
 
                 // 3-Attempt Retry Logic for WhatsApp Rate Limits
@@ -163,7 +163,7 @@ async function handleGlobalBroadcast(broadcast) {
                         } else {
                             await currentSocket.sendMessage(jid, { text: officialMessage });
                         }
-                        sent = true; 
+                        sent = true;
                     } catch (err) {
                         lastError = err;
                         console.log(`${C.yellow}[BROADCAST] Attempt ${attempts} failed for ${jid}. Retrying in 2s...${C.reset}`);
@@ -177,7 +177,7 @@ async function handleGlobalBroadcast(broadcast) {
                 } else {
                     console.error(`${C.red}Failed to broadcast to ${user} after 3 attempts:${C.reset}`, lastError?.message);
                 }
-                
+
                 await sleep(1000); // 1s delay between different users to prevent socket flooding
             } catch (err) {
                 console.error(`${C.red}Critical error processing user ${user}:${C.reset}`, err.message);
@@ -185,7 +185,7 @@ async function handleGlobalBroadcast(broadcast) {
         }
 
         await supabase.from('broadcasts').update({ status: 'sent' }).eq('id', id);
-        
+
         const summaryColor = successCount === users.length ? C.green : (successCount > 0 ? C.yellow : C.red);
         console.log(`\n${summaryColor}✅ Broadcast [ID: ${id}] completed! (${successCount}/${users.length} transmitted)${C.reset}`);
     } catch (err) {
@@ -216,7 +216,7 @@ async function pollPendingBroadcasts() {
 async function startBroadcastListener() {
     console.log(`${C.magenta}[BROADCAST]${C.reset} Initializing Polling Fallback...`);
     await pollPendingBroadcasts();
-    
+
     if (broadcastPollInterval) clearInterval(broadcastPollInterval);
     broadcastPollInterval = setInterval(() => pollPendingBroadcasts(), POLL_INTERVAL);
 }
@@ -242,7 +242,7 @@ async function pollPendingRegistrations() {
 async function startRegistrationListener() {
     console.log(`${C.magenta}[REGISTRATION]${C.reset} Initializing Polling Fallback...`);
     await pollPendingRegistrations();
-    
+
     if (registrationPollInterval) clearInterval(registrationPollInterval);
     registrationPollInterval = setInterval(() => pollPendingRegistrations(), POLL_INTERVAL);
 }
@@ -252,22 +252,22 @@ async function listenToRedisQueues() {
         console.log(`${C.yellow}[REDIS]${C.reset} REDIS_URL not found. Skipping instant queue listeners.`);
         return;
     }
-    
+
     if (isRedisListening) return; // Prevent creating multiple infinite loops on reconnect
     isRedisListening = true;
 
     console.log(`${C.green}[REDIS]${C.reset} Instant Delivery Queue ${C.bold}${C.green}READY${C.reset}`);
-    
+
     // Infinite loop blocking pop
     while (true) {
         try {
             // Wait up to 0 seconds (infinite) for new items in either queue
             const result = await redisClient.blpop('queue:broadcasts', 'queue:registrations', 0);
             if (!result) continue;
-            
+
             const [queueName, dataString] = result;
             const data = JSON.parse(dataString);
-            
+
             if (queueName === 'queue:broadcasts') {
                 console.log(`${C.magenta}[REDIS]${C.reset} Instant Broadcast received!`);
                 await handleGlobalBroadcast(data);
@@ -521,7 +521,7 @@ async function connectToWhatsApp() {
             if (imageMessage) {
                 // Quota check for images
                 if (!isAdmin && currentUsage >= limit) {
-                    const webUrl = "https://studyit-register.vercel.app/";
+                    const webUrl = "https://studyit-bot.vercel.app/register";
                     await socket.sendMessage(remoteJid, {
                         text: `⚠️ *Daily Limit Reached!* 🎓\n\nYou have used your *${limit}/${limit}* free messages for today.\n\n✨ *Want more?* Register for free on our website to get *${REGISTERED_LIMIT}* messages per day!\n\n🔗 *Register here:* ${webUrl}`
                     }, { quoted: msg });
@@ -556,7 +556,7 @@ async function connectToWhatsApp() {
             } else if (audioMessage) {
                 // Quota check for audio
                 if (!isAdmin && currentUsage >= limit) {
-                    const webUrl = "https://studyit-register.vercel.app/";
+                    const webUrl = "https://studyit-bot.vercel.app/register";
                     await socket.sendMessage(remoteJid, {
                         text: `⚠️ *Daily Limit Reached!* 🎓\n\nYou have used your *${limit}/${limit}* free messages for today.\n\n✨ *Want more?* Register for free on our website to get *${REGISTERED_LIMIT}* messages per day!\n\n🔗 *Register here:* ${webUrl}`
                     }, { quoted: msg });
@@ -589,7 +589,7 @@ async function connectToWhatsApp() {
             } else if (documentMessage && documentMessage.mimetype === 'application/pdf') {
                 // Quota check for documents
                 if (!isAdmin && currentUsage >= limit) {
-                    const webUrl = "https://studyit-register.vercel.app/";
+                    const webUrl = "https://studyit-bot.vercel.app/register";
                     await socket.sendMessage(remoteJid, {
                         text: `⚠️ *Daily Limit Reached!* 🎓\n\nYou have used your *${limit}/${limit}* free messages for today.\n\n✨ *Want more?* Register for free on our website to get *${REGISTERED_LIMIT}* messages per day!\n\n🔗 *Register here:* ${webUrl}`
                     }, { quoted: msg });
@@ -661,7 +661,7 @@ async function connectToWhatsApp() {
 
                 // Quota check for text AI
                 if (!effectivelyAdmin && currentUsage >= limit) {
-                    const webUrl = "https://studyit-register.vercel.app/";
+                    const webUrl = "https://studyit-bot.vercel.app/register";
                     await socket.sendMessage(remoteJid, {
                         text: `⚠️ *Daily Limit Reached!* 🎓\n\nYou have used your *${limit}/${limit}* free messages for today.\n\n✨ *Want more?* Register for free on our website to get *${REGISTERED_LIMIT}* messages per day!\n\n🔗 *Register here:* ${webUrl}`
                     }, { quoted: msg });

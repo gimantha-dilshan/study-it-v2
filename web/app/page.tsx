@@ -6,6 +6,7 @@ const Features = lazy(() => import("../components/Features"));
 const HowItWorks = lazy(() => import("../components/HowItWorks"));
 const Showcase = lazy(() => import("../components/Showcase"));
 const Pricing = lazy(() => import("../components/Pricing"));
+const Contact = lazy(() => import("../components/Contact"));
 const Footer = lazy(() => import("../components/Footer"));
 
 const SectionFallback = () => (
@@ -37,6 +38,9 @@ export default function LandingPage() {
       </Suspense>
       <Suspense fallback={<SectionFallback />}>
         <Pricing />
+      </Suspense>
+      <Suspense fallback={<SectionFallback />}>
+        <Contact />
       </Suspense>
       <Suspense fallback={<SectionFallback />}>
         <Footer />

@@ -69,46 +69,46 @@ export default function Contact() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
 
-          {/* Left: Contact Info */}
+          {/* Left: Contact Info - Now order-2 (bottom) on mobile, lg:order-1 (left) on desktop */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            className="space-y-8"
+            className="space-y-6 md:space-y-8 order-2 lg:order-1"
           >
-            <div className="glass-card flex items-start gap-6 p-10 group hover:border-indigo-500/30 transition-all duration-500">
-              <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                <Mail className="w-8 h-8 text-indigo-400" />
+            <div className="glass-card flex items-start gap-3 md:gap-6 p-4 md:p-10 group hover:border-indigo-500/30 transition-all duration-500">
+              <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                <Mail className="w-5 h-5 md:w-8 md:h-8 text-indigo-400" />
               </div>
-              <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-white">Email Us</h3>
-                <p className="text-gray-400 font-medium">For support, enterprise inquiries, and partnership requests.</p>
-                <a href="https://studyit-bot.vercel.app/" className="text-xl font-bold text-indigo-400 hover:text-indigo-300 transition-colors inline-block pt-2">
+              <div className="space-y-1 md:space-y-2">
+                <h3 className="text-lg md:text-2xl font-bold text-white">Email Us</h3>
+                <p className="text-xs md:text-base text-gray-400 font-medium leading-tight md:leading-normal">For support, enterprise inquiries, and partnerships.</p>
+                <a href="https://studyit-bot.vercel.app/" className="text-base md:text-xl font-bold text-indigo-400 hover:text-indigo-300 transition-colors inline-block pt-1 md:pt-2">
                   Available Soon!
-                  {/* mailto:support@study-it.ai */}
                 </a>
               </div>
             </div>
-            <div className="glass-card flex items-start gap-6 p-10 group hover:border-indigo-500/30 transition-all duration-500">
-              <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                <MessageSquareHeart className="w-8 h-8 text-indigo-400" />
+
+            <div className="glass-card flex items-start gap-3 md:gap-6 p-4 md:p-10 group hover:border-indigo-500/30 transition-all duration-500">
+              <div className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                <MessageSquareHeart className="w-5 h-5 md:w-8 md:h-8 text-indigo-400" />
               </div>
-              <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-white">Join The Community</h3>
-                <p className="text-gray-400 font-medium">Join our community and connect with other students and educators.</p>
-                <p className="text-xl font-bold text-indigo-400 hover:text-indigo-300 transition-colors inline-block pt-2">Available Soon!</p>
+              <div className="space-y-1 md:space-y-2">
+                <h3 className="text-lg md:text-2xl font-bold text-white">Join The Community</h3>
+                <p className="text-xs md:text-base text-gray-400 font-medium leading-tight md:leading-normal">Connect with other students and educators.</p>
+                <p className="text-base md:text-xl font-bold text-indigo-400 hover:text-indigo-300 transition-colors inline-block pt-1 md:pt-2">Available Soon!</p>
               </div>
             </div>
 
 
           </motion.div>
 
-          {/* Right: Form */}
+          {/* Right: Form - Now order-1 (top) on mobile, lg:order-2 (right) on desktop */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            className="glass-card p-4 sm:p-10 relative overflow-hidden"
+            className="glass-card p-4 sm:p-10 relative overflow-hidden order-1 lg:order-2"
           >
             {/* Glossy decorative line */}
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 opacity-50" />

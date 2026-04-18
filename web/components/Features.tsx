@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Camera, Mic, FileText, ShieldAlert, DatabaseZap, MessageCircleCheck, BookType } from "lucide-react";
+import { Camera, Mic, FileText, ShieldAlert, DatabaseZap, MessageCircleCheck, BookType, FolderOpen } from "lucide-react";
 
 const features = [
   {
@@ -23,7 +23,7 @@ const features = [
     title: "AI Voice Partner",
     description: "Send a voice note asking a question. Study-It listens and responds with clear, structured explanations instantly.",
     color: "from-purple-500/20 to-transparent",
-    border: "group-hover:border-purple-500/50"
+    border: "group-hover:border-green-500/50"
   },
   {
     icon: <FileText className="w-8 h-8 text-blue-400" />,
@@ -37,14 +37,14 @@ const features = [
     title: "Multi Language Support",
     description: "Study-It supports multiple languages, allowing you to get help in the language you are most comfortable with.",
     color: "from-blue-500/20 to-transparent",
-    border: "group-hover:border-blue-500/50"
+    border: "group-hover:border-purple-500/50"
   },
   {
     icon: <ShieldAlert className="w-8 h-8 text-green-400" />,
     title: "4-Tier Protection",
     description: "If the primary AI model fails, we automatically cycle through secondary models and backup APIs. 100% Guaranteed uptime.",
     color: "from-green-500/20 to-transparent",
-    border: "group-hover:border-green-500/50"
+    border: "group-hover:border-indigo-500/50"
   },
   {
     icon: <MessageCircleCheck className="w-8 h-8 text-indigo-400" />,
@@ -52,6 +52,13 @@ const features = [
     description: "Study-It is always available 24/7, ensuring you get the help you need whenever you need it.",
     color: "from-indigo-500/20 to-transparent",
     border: "group-hover:border-indigo-500/50"
+  },
+  {
+    icon: <FolderOpen className="w-8 h-8 text-indigo-400" />,
+    title: "Open Source",
+    description: "Study-It is open source, allowing you to view, modify, and contribute to the code.",
+    color: "from-indigo-500/20 to-transparent",
+    border: "group-hover:border-green-500/50"
   }
 ];
 

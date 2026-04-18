@@ -80,7 +80,7 @@ export default function Hero() {
           {/* Abstract glowing backdrop for the image - hidden on mobile to save GPU */}
           <div className="hidden md:block absolute inset-0 bg-gradient-to-tr from-indigo-600/30 to-purple-600/30 rounded-full blur-[100px] animate-pulse-slow" />
 
-          <div className="relative w-full max-w-lg aspect-square lg:aspect-auto lg:h-[90%] overflow-hidden">
+          <div className="relative w-full max-w-lg aspect-square lg:aspect-auto lg:h-[90%] overflow-hidden animate-float">
             {/* We use next/image. Ensure it handles the path correctly. */}
             <Image
               src="/bot-image.webp"

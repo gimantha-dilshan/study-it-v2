@@ -72,10 +72,10 @@ export default function Hero() {
 
         {/* Graphical Representation */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.9, rotate: -5 }}
-          animate={{ opacity: 1, scale: 1, rotate: 0 }}
-          transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
-          className="relative lg:h-[600px] flex items-center justify-center z-20 perspective-1000"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut", delay: 0.3 }}
+          className="relative lg:h-[600px] flex items-center justify-center z-20"
         >
           {/* Abstract glowing backdrop for the image */}
           <div className="absolute inset-0 bg-gradient-to-tr from-indigo-600/30 to-purple-600/30 rounded-full blur-[100px] animate-pulse-slow" />

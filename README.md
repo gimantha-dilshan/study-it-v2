@@ -180,17 +180,19 @@ NEXT_PUBLIC_BOT_NUMBER=your_country_code_number_no_plus_signs # NEW: Frontend Bo
 NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY=your_access_key            # NEW: Contact Support Key
 ```
 
-### 3. Launch
-```bash
-# Start the WhatsApp Bot (Now with automated BOT_NUMBER pairing)
-npm install
-node index.js
 
-# Start the Admin Dashboard
-cd web
-npm install
-npm run dev
-```
+
+## 🔐 Admin Dashboard Access
+
+The **Study-It Admin Center** allows you to manage users, view real-time analytics, and send global broadcasts.
+
+1. **URL:** Navigate to `http://localhost:3000/admin` (or your production URL).
+2. **Authentication:** Enter the `ADMIN_PASSCODE` you defined in your `web/.env.local` file.
+3. **Capabilities:**
+   - **🔴 Live Broadcast:** Send official announcements to all WhatsApp students.
+   - **📈 Analytics:** Track daily message volume, OCR scans, and voice notes.
+   - **👥 User Management:** Search for students and view their specific usage history.
+   - **💎 Pro Management:** Verify registration events and student status.
 
 ---
 
@@ -246,6 +248,41 @@ pm2 stop study-it
 # To restart the bot
 pm2 restart study-it
 ```
+
+---
+
+## 🌐 Web Hosting Guide (Frontend & Dashboard)
+
+The **Next.js web platform** (Marketing page, Registration, and Admin Dashboard) needs to be hosted separately. You have two professional options:
+
+### Option 1: Vercel (Highly Recommended)
+Vercel is the natural home for Next.js. It's free, has global CDN performance, and handles SSL automatically.
+1. Create a [Vercel](https://vercel.com/) account and connect your GitHub repository.
+2. Set the **Root Directory** to `web`.
+3. Add all your environment variables from `web/.env.local` to the Vercel **Environment Variables** settings.
+4. Click **Deploy**. Your site is now live!
+
+### Option 2: VPS (Using PM2)
+If you want to host the web app on the same VPS as your bot to save costs:
+
+1. **Navigate to the web folder:**
+   ```bash
+   cd web
+   ```
+2. **Configure Production Environment:**
+   Create a `.env` file inside the `web` folder:
+   ```bash
+   nano .env
+   ```
+   *Paste your `web/.env.local` contents here, save and exit.*
+3. **Build & Start:**
+   ```bash
+   npm install
+   npm run build
+   pm2 start npm --name "study-it-web" -- start
+   ```
+4. **Accessing the Dashboard:**
+   Once running, your site will be available on port `3000`. You can use a reverse proxy like **Nginx** to map it to a domain with SSL.
 
 ---
 

@@ -298,7 +298,7 @@ Distributed under the **MIT License**. See `LICENSE` for more information.
 
 ## 🤝 Contact
 **Gimantha Dilshan** - Developer
-Project Link: [https://github.com/gimantha-dilshan/study-it-v2](https://github.com/gimantha-dishan/study-it-v2)
+Project Link: [https://github.com/gimantha-dilshan/study-it-v2](https://github.com/gimantha-dishan/study-it)
 
 ---
 
